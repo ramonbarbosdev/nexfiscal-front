@@ -1,8 +1,9 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { Moon, Sun } from "lucide-react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { LogOut, Moon, Sun } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/features/auth/auth-context";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -19,6 +20,13 @@ type AppShellProps = {
 
 export function AppShell({ children, isDark, onToggleTheme, mobileAction }: AppShellProps) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    logout();
+    await navigate({ to: "/login" });
+  };
 
   return (
     <div className="nexfiscal-app relative min-h-screen">
@@ -48,7 +56,7 @@ export function AppShell({ children, isDark, onToggleTheme, mobileAction }: AppS
             })}
           </nav>
 
-          <div className="border-t border-white/10 p-3">
+          <div className="space-y-1 border-t border-white/10 p-3">
             <Button
               variant="ghost"
               size="sm"
@@ -57,6 +65,15 @@ export function AppShell({ children, isDark, onToggleTheme, mobileAction }: AppS
             >
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               {isDark ? "Modo claro" : "Modo escuro"}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start gap-2 text-white/70 hover:bg-white/10 hover:text-white"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4" />
+              Sair
             </Button>
           </div>
         </aside>

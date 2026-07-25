@@ -1,34 +1,29 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 
-import type { Counters, Invoice, InvoiceForm, InvoiceStatus, Prestador } from "./types";
-import { buildInvoicesFromImport, type InvoiceImportItem } from "./import";
-import { blankAddress, blankPrestador, generateVerificationCode } from "./utils";
+import { useAuth } from "@/features/auth/auth-context";
 
-const STORAGE_KEY = "nexfiscal:invoices:v1";
-const PRESTADOR_KEY = "nexfiscal:prestador:v1";
+import {
+  cancelInvoiceApi,
+  createInvoice,
+  duplicateInvoiceApi,
+  emitInvoice,
+  exportInvoicesApi,
+  fetchInvoices,
+  fetchPrestadorConfig,
+  importInvoicesApi,
+  invoiceKeys,
+  patchInvoiceStatus,
+  savePrestadorConfig,
+  updateInvoice,
+} from "./api";
+import type { InvoiceImportItem } from "./import";
+import { blankAddress } from "./utils";
+import type { Invoice, InvoiceForm, InvoiceStatus } from "./types";
 
-function loadPrestadorDefaults(): Prestador {
-  if (typeof window === "undefined") return blankPrestador();
-  try {
-    const raw = localStorage.getItem(PRESTADOR_KEY);
-    if (raw) return JSON.parse(raw) as Prestador;
-  } catch {
-    // ignore
-  }
-  return blankPrestador();
-}
-
-function savePrestadorDefaults(prestador: Prestador) {
-  try {
-    localStorage.setItem(PRESTADOR_KEY, JSON.stringify(prestador));
-  } catch {
-    // ignore
-  }
-}
-
-function blankForm(): InvoiceForm {
+function blankForm(prestador: InvoiceForm["prestador"]): InvoiceForm {
   return {
-    prestador: loadPrestadorDefaults(),
+    prestador,
     tomador: {
       tipo: "pj",
       nome: "",
@@ -53,189 +48,137 @@ function blankForm(): InvoiceForm {
   };
 }
 
-function deriveCounters(invoices: Invoice[]): Counters {
-  const idCounter = Math.max(0, ...invoices.map((i) => i.id || 0)) + 1;
-  const nums = invoices.map((i) => parseInt(i.numero, 10) || 0);
-  const seq = Math.max(0, ...nums) + 1;
-  return { idCounter, seq };
-}
-
-function loadFromStorage(): { invoices: Invoice[]; counters: Counters } | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const saved = JSON.parse(raw) as Invoice[];
-    if (!Array.isArray(saved)) return null;
-    const invoices = saved.map((i) => ({ ...i, dataEmissao: new Date(i.dataEmissao) }));
-    return { invoices, counters: deriveCounters(invoices) };
-  } catch {
-    return null;
-  }
-}
-
-function initState() {
-  const stored = loadFromStorage();
-  if (stored) return stored;
-  return { invoices: [], counters: { idCounter: 1, seq: 1 } };
-}
-
 export function useInvoices() {
-  const [{ invoices, counters }, setState] = useState(initState);
-  const countersRef = useRef(counters);
-  countersRef.current = counters;
+  const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
 
-  const save = useCallback((next: Invoice[]) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      // ignore
-    }
-  }, []);
+  const {
+    data: invoices = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: invoiceKeys.all,
+    queryFn: fetchInvoices,
+    enabled: isAuthenticated,
+  });
 
-  useEffect(() => {
-    const interval = setInterval(() => save(invoices), 1200);
-    const onUnload = () => save(invoices);
-    window.addEventListener("beforeunload", onUnload);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("beforeunload", onUnload);
-    };
-  }, [invoices, save]);
+  const {
+    data: prestadorDefaults,
+    isLoading: isPrestadorLoading,
+    isError: isPrestadorError,
+    error: prestadorError,
+    refetch: refetchPrestador,
+  } = useQuery({
+    queryKey: invoiceKeys.prestador,
+    queryFn: fetchPrestadorConfig,
+    enabled: isAuthenticated,
+  });
 
-  const updateInvoices = useCallback((updater: (prev: Invoice[]) => Invoice[]) => {
-    setState((prev) => {
-      const nextInvoices = updater(prev.invoices);
-      return { invoices: nextInvoices, counters: deriveCounters(nextInvoices) };
-    });
-  }, []);
+  const invalidate = useCallback(() => {
+    return queryClient.invalidateQueries({ queryKey: invoiceKeys.all });
+  }, [queryClient]);
 
   const changeStatus = useCallback(
-    (id: number, status: InvoiceStatus) => {
-      updateInvoices((prev) =>
-        prev.map((inv) =>
-          inv.id === id
-            ? {
-                ...inv,
-                status,
-                codigoVerificacao:
-                  status === "emitida" && !inv.codigoVerificacao
-                    ? generateVerificationCode()
-                    : inv.codigoVerificacao,
-              }
-            : inv,
-        ),
-      );
+    async (id: number, status: InvoiceStatus) => {
+      await patchInvoiceStatus(id, status);
+      await invalidate();
     },
-    [updateInvoices],
+    [invalidate],
   );
 
-  const createBlankForm = useCallback(() => blankForm(), []);
+  const createBlankForm = useCallback(() => {
+    if (!prestadorDefaults) {
+      throw new Error("Configuração do prestador ainda não carregada");
+    }
+    return blankForm(prestadorDefaults);
+  }, [prestadorDefaults]);
 
   const cloneFormFromInvoice = useCallback((invoice: Invoice): InvoiceForm => {
     return JSON.parse(JSON.stringify(invoice)) as InvoiceForm;
   }, []);
 
-  const saveInvoice = useCallback(
-    (form: InvoiceForm, editingId: number | null, emit: boolean): Invoice => {
-      savePrestadorDefaults(form.prestador);
+  const saveMutation = useMutation({
+    mutationFn: async ({
+      form,
+      editingId,
+      emit,
+    }: {
+      form: InvoiceForm;
+      editingId: number | null;
+      emit: boolean;
+    }) => {
+      await savePrestadorConfig(form.prestador);
+      queryClient.setQueryData(invoiceKeys.prestador, form.prestador);
 
+      let saved: Invoice;
       if (editingId !== null) {
-        let saved!: Invoice;
-        updateInvoices((prev) => {
-          const idx = prev.findIndex((i) => i.id === editingId);
-          if (idx === -1) return prev;
-          const current = prev[idx];
-          saved = {
-            ...current,
-            ...form,
-            id: editingId,
-            status: emit ? "emitida" : current.status === "emitida" ? "emitida" : "rascunho",
-            codigoVerificacao: emit
-              ? current.codigoVerificacao ?? generateVerificationCode()
-              : current.codigoVerificacao,
-            dataEmissao: emit ? new Date() : current.dataEmissao,
-          };
-          const next = [...prev];
-          next[idx] = saved;
-          return next;
-        });
-        return saved!;
+        saved = await updateInvoice(editingId, form);
+        if (emit) {
+          saved = await emitInvoice(editingId);
+        }
+      } else {
+        saved = await createInvoice(form);
+        if (emit) {
+          saved = await emitInvoice(saved.id);
+        }
       }
-
-      const { idCounter, seq } = countersRef.current;
-      const newInvoice: Invoice = {
-        id: idCounter,
-        numero: String(seq).padStart(6, "0"),
-        serie: "1",
-        status: emit ? "emitida" : "rascunho",
-        dataEmissao: new Date(),
-        codigoVerificacao: emit ? generateVerificationCode() : null,
-        ...JSON.parse(JSON.stringify(form)),
-      };
-
-      setState((prev) => ({
-        invoices: [...prev.invoices, newInvoice],
-        counters: { idCounter: idCounter + 1, seq: seq + 1 },
-      }));
-
-      return newInvoice;
+      return saved;
     },
-    [updateInvoices],
+    onSuccess: invalidate,
+  });
+
+  const saveInvoice = useCallback(
+    async (form: InvoiceForm, editingId: number | null, emit: boolean): Promise<Invoice> => {
+      return saveMutation.mutateAsync({ form, editingId, emit });
+    },
+    [saveMutation],
   );
 
   const cancelInvoice = useCallback(
-    (id: number) => {
-      changeStatus(id, "cancelada");
+    async (id: number) => {
+      await cancelInvoiceApi(id);
+      await invalidate();
     },
-    [changeStatus],
+    [invalidate],
   );
 
   const duplicateInvoice = useCallback(
-    (id: number) => {
-      const source = invoices.find((i) => i.id === id);
-      if (!source) return;
-
-      const { idCounter, seq } = countersRef.current;
-      const copy: Invoice = {
-        ...JSON.parse(JSON.stringify(source)),
-        id: idCounter,
-        numero: String(seq).padStart(6, "0"),
-        status: "rascunho",
-        dataEmissao: new Date(),
-        codigoVerificacao: null,
-      };
-
-      setState((prev) => ({
-        invoices: [...prev.invoices, copy],
-        counters: { idCounter: idCounter + 1, seq: seq + 1 },
-      }));
+    async (id: number) => {
+      await duplicateInvoiceApi(id);
+      await invalidate();
     },
-    [invoices],
+    [invalidate],
   );
 
   const importInvoices = useCallback(
-    (items: InvoiceImportItem[]) => {
-      const { invoices: imported, skipped, counters } = buildInvoicesFromImport(
-        items,
-        invoices,
-        countersRef.current,
-      );
-
-      if (imported.length > 0) {
-        setState((prev) => ({
-          invoices: [...prev.invoices, ...imported],
-          counters,
-        }));
+    async (items: InvoiceImportItem[]) => {
+      if (items.length === 0) {
+        return { imported: 0, skipped: [] as string[] };
       }
 
-      return { imported: imported.length, skipped };
+      const imported = await importInvoicesApi({ invoices: items });
+      await invalidate();
+
+      return { imported: imported.length, skipped: [] as string[] };
     },
-    [invoices],
+    [invalidate],
   );
+
+  const exportInvoices = useCallback(async () => {
+    return exportInvoicesApi();
+  }, []);
 
   return {
     invoices,
+    isLoading: isLoading || isPrestadorLoading,
+    isError: isError || isPrestadorError,
+    error: (error ?? prestadorError) as Error | null,
+    refetch: async () => {
+      await Promise.all([refetch(), refetchPrestador()]);
+    },
+    isPrestadorReady: Boolean(prestadorDefaults),
     changeStatus,
     createBlankForm,
     cloneFormFromInvoice,
@@ -243,5 +186,6 @@ export function useInvoices() {
     cancelInvoice,
     duplicateInvoice,
     importInvoices,
+    exportInvoices,
   };
 }

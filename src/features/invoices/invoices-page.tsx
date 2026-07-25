@@ -2,15 +2,16 @@ import { useState } from "react";
 import { Plus, Upload } from "lucide-react";
 
 import { ListToolbar } from "@/components/list/list-toolbar";
+import { ApiQueryState } from "@/components/layout/api-query-state";
 import { AppShell } from "@/components/layout/app-shell";
 import { AppToast } from "@/components/layout/app-toast";
 import { Button } from "@/components/ui/button";
 import { useListControls } from "@/hooks/use-list-controls";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
+import { ApiError } from "@/lib/api-client";
 
 import { ImportInvoicesModal } from "./import-modal";
-import { serializeInvoicesForExport } from "./import";
 import { InvoiceDrawer } from "./invoice-drawer";
 import {
   filterInvoice,
@@ -29,6 +30,11 @@ export function InvoicesPage() {
   const { message, variant, show: showToast } = useToast();
   const {
     invoices,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isPrestadorReady,
     changeStatus,
     createBlankForm,
     cloneFormFromInvoice,
@@ -36,6 +42,7 @@ export function InvoicesPage() {
     cancelInvoice,
     duplicateInvoice,
     importInvoices,
+    exportInvoices,
   } = useInvoices();
 
   const list = useListControls({
@@ -59,9 +66,18 @@ export function InvoicesPage() {
   const editingInvoice = editingId ? invoices.find((i) => i.id === editingId) ?? null : null;
 
   const openDrawer = (existing: Invoice | null) => {
-    setEditingId(existing?.id ?? null);
-    setForm(existing ? cloneFormFromInvoice(existing) : createBlankForm());
-    setDrawerOpen(true);
+    if (!existing && !isPrestadorReady) {
+      showToast("Aguarde o carregamento da configuração do prestador", "warning");
+      return;
+    }
+
+    try {
+      setEditingId(existing?.id ?? null);
+      setForm(existing ? cloneFormFromInvoice(existing) : createBlankForm());
+      setDrawerOpen(true);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Erro ao abrir formulário", "error");
+    }
   };
 
   const openPreview = (id: number) => {
@@ -69,24 +85,36 @@ export function InvoicesPage() {
     setPreviewOpen(true);
   };
 
-  const persist = (emit: boolean) => {
+  const persist = async (emit: boolean) => {
     if (!form) return;
-    const saved = saveInvoice(form, editingId, emit);
-    setDrawerOpen(false);
-    openPreview(saved.id);
-    showToast(emit ? "NFS-e emitida" : editingId ? "Rascunho atualizado" : "Rascunho salvo");
+    try {
+      const saved = await saveInvoice(form, editingId, emit);
+      setDrawerOpen(false);
+      openPreview(saved.id);
+      showToast(emit ? "NFS-e emitida" : editingId ? "Rascunho atualizado" : "Rascunho salvo");
+    } catch (error) {
+      showToast(error instanceof ApiError ? error.message : "Erro ao salvar nota", "error");
+    }
   };
 
-  const handleStatusChange = (id: number, status: Parameters<typeof changeStatus>[1]) => {
-    changeStatus(id, status);
-    showToast("Status atualizado");
+  const handleStatusChange = async (id: number, status: Parameters<typeof changeStatus>[1]) => {
+    try {
+      await changeStatus(id, status);
+      showToast("Status atualizado");
+    } catch (error) {
+      showToast(error instanceof ApiError ? error.message : "Erro ao atualizar status", "error");
+    }
   };
 
-  const handleDuplicate = () => {
+  const handleDuplicate = async () => {
     if (previewId === null) return;
-    duplicateInvoice(previewId);
-    setPreviewOpen(false);
-    showToast("NFS-e duplicada");
+    try {
+      await duplicateInvoice(previewId);
+      setPreviewOpen(false);
+      showToast("NFS-e duplicada");
+    } catch (error) {
+      showToast(error instanceof ApiError ? error.message : "Erro ao duplicar", "error");
+    }
   };
 
   const handleEditFromPreview = () => {
@@ -95,35 +123,49 @@ export function InvoicesPage() {
     openDrawer(previewInvoice);
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     if (previewId === null) return;
-    cancelInvoice(previewId);
-    showToast("NFS-e cancelada");
-  };
-
-  const handleExport = () => {
-    const blob = new Blob([serializeInvoicesForExport(invoices)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `nexfiscal-notas-${new Date().toISOString().slice(0, 10)}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-    showToast("Backup exportado");
-  };
-
-  const handleImport = (items: Parameters<typeof importInvoices>[0]) => {
-    const { imported, skipped } = importInvoices(items);
-    if (imported > 0) {
-      showToast(
-        skipped.length > 0
-          ? `${imported} importada(s), ${skipped.length} ignorada(s)`
-          : `${imported} nota(s) importada(s)`,
-      );
-    } else {
-      showToast(skipped.length > 0 ? "Nenhuma nota importada (duplicadas)" : "Nada para importar");
+    try {
+      await cancelInvoice(previewId);
+      showToast("NFS-e cancelada");
+    } catch (error) {
+      showToast(error instanceof ApiError ? error.message : "Erro ao cancelar", "error");
     }
-    return { imported, skipped };
+  };
+
+  const handleExport = async () => {
+    try {
+      const json = await exportInvoices();
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `nexfiscal-notas-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      showToast("Backup exportado");
+    } catch (error) {
+      showToast(error instanceof ApiError ? error.message : "Erro ao exportar", "error");
+    }
+  };
+
+  const handleImport = async (items: Parameters<typeof importInvoices>[0]) => {
+    try {
+      const { imported, skipped } = await importInvoices(items);
+      if (imported > 0) {
+        showToast(
+          skipped.length > 0
+            ? `${imported} importada(s), ${skipped.length} ignorada(s)`
+            : `${imported} nota(s) importada(s)`,
+        );
+      } else {
+        showToast(skipped.length > 0 ? "Nenhuma nota importada (duplicadas)" : "Nada para importar");
+      }
+      return { imported, skipped };
+    } catch (error) {
+      showToast(error instanceof ApiError ? error.message : "Erro ao importar", "error");
+      return { imported: 0, skipped: [] as string[] };
+    }
   };
 
   return (
@@ -143,6 +185,14 @@ export function InvoicesPage() {
     >
       <StatsGrid invoices={invoices} />
 
+      <ApiQueryState
+        isLoading={isLoading}
+        isError={isError}
+        error={error}
+        onRetry={() => void refetch()}
+        loadingLabel="Carregando notas fiscais…"
+      >
+        <>
       <ListToolbar
           title="Notas Fiscais de Serviço"
           description="Emissão e controle de NFS-e."
@@ -189,6 +239,8 @@ export function InvoicesPage() {
           onStatusChange={handleStatusChange}
           hasFilters={list.hasActiveFilters || invoices.length > 0}
         />
+        </>
+      </ApiQueryState>
 
       <InvoiceDrawer
         open={drawerOpen}

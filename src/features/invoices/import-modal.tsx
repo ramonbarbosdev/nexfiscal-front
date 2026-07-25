@@ -21,7 +21,7 @@ import {
 type ImportInvoicesModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onImport: (items: InvoiceImportItem[]) => { imported: number; skipped: string[] };
+  onImport: (items: InvoiceImportItem[]) => Promise<{ imported: number; skipped: string[] }>;
   onExport: () => void;
   invoiceCount: number;
 };
@@ -65,9 +65,9 @@ export function ImportInvoicesModal({
     setErrors(result.errors);
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (preview.length === 0) return;
-    onImport(preview);
+    await onImport(preview);
     handleClose(false);
   };
 

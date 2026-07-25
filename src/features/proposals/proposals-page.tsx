@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 
 import { ListToolbar } from "@/components/list/list-toolbar";
+import { ApiQueryState } from "@/components/layout/api-query-state";
 import { AppShell } from "@/components/layout/app-shell";
 import { AppToast } from "@/components/layout/app-toast";
 import { Button } from "@/components/ui/button";
 import { useListControls } from "@/hooks/use-list-controls";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
+import { ApiError } from "@/lib/api-client";
 
 import {
   filterProposal,
@@ -27,6 +29,10 @@ export function ProposalsPage() {
   const { message, variant, show: showToast } = useToast();
   const {
     proposals,
+    isLoading,
+    isError,
+    error,
+    refetch,
     changeStatus,
     createBlankForm,
     cloneFormFromProposal,
@@ -65,12 +71,16 @@ export function ProposalsPage() {
     setPreviewOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form) return;
-    const saved = saveProposal(form, editingId);
-    setDrawerOpen(false);
-    openPreview(saved.id);
-    showToast(editingId ? "Proposta atualizada" : "Proposta criada");
+    try {
+      const saved = await saveProposal(form, editingId);
+      setDrawerOpen(false);
+      openPreview(saved.id);
+      showToast(editingId ? "Proposta atualizada" : "Proposta criada");
+    } catch (error) {
+      showToast(error instanceof ApiError ? error.message : "Erro ao salvar proposta", "error");
+    }
   };
 
   const handleAddItem = () => {
@@ -91,16 +101,24 @@ export function ProposalsPage() {
     setForm({ ...form, itens: form.itens.filter((item) => item.id !== id) });
   };
 
-  const handleStatusChange = (id: number, status: Parameters<typeof changeStatus>[1]) => {
-    changeStatus(id, status);
-    showToast("Status atualizado");
+  const handleStatusChange = async (id: number, status: Parameters<typeof changeStatus>[1]) => {
+    try {
+      await changeStatus(id, status);
+      showToast("Status atualizado");
+    } catch (error) {
+      showToast(error instanceof ApiError ? error.message : "Erro ao atualizar status", "error");
+    }
   };
 
-  const handleDuplicate = () => {
+  const handleDuplicate = async () => {
     if (previewId === null) return;
-    duplicateProposal(previewId);
-    setPreviewOpen(false);
-    showToast("Proposta duplicada");
+    try {
+      await duplicateProposal(previewId);
+      setPreviewOpen(false);
+      showToast("Proposta duplicada");
+    } catch (error) {
+      showToast(error instanceof ApiError ? error.message : "Erro ao duplicar", "error");
+    }
   };
 
   const handleEditFromPreview = () => {
@@ -127,7 +145,15 @@ export function ProposalsPage() {
     >
       <StatsGrid proposals={proposals} />
 
-      <ListToolbar
+      <ApiQueryState
+        isLoading={isLoading}
+        isError={isError}
+        error={error}
+        onRetry={() => void refetch()}
+        loadingLabel="Carregando propostas…"
+      >
+        <>
+        <ListToolbar
           title="Propostas"
           description="Gerencie suas propostas comerciais."
           search={list.search}
@@ -163,6 +189,8 @@ export function ProposalsPage() {
           onStatusChange={handleStatusChange}
           hasFilters={list.hasActiveFilters || proposals.length > 0}
         />
+        </>
+      </ApiQueryState>
 
       <ProposalDrawer
         open={drawerOpen}

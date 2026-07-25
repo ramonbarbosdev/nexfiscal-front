@@ -1,6 +1,6 @@
 import { formatCpfCnpj, onlyDigits } from "@/lib/format";
 
-import type { Invoice, InvoiceForm, InvoiceStatus, PartyAddress } from "./types";
+import type { InvoiceForm, InvoiceStatus, PartyAddress } from "./types";
 import { blankAddress, blankPrestador } from "./utils";
 
 export type ImportParseResult = {
@@ -18,8 +18,6 @@ export type InvoiceImportItem = {
 };
 
 export type ImportFileType = "json" | "xml" | "csv";
-
-const EXPORT_VERSION = 1;
 
 export function detectImportType(file: File): ImportFileType | null {
   const name = file.name.toLowerCase();
@@ -43,20 +41,6 @@ export function parseImportFile(content: string, type: ImportFileType): ImportPa
   }
 }
 
-export function serializeInvoicesForExport(invoices: Invoice[]) {
-  return JSON.stringify(
-    {
-      version: EXPORT_VERSION,
-      exportedAt: new Date().toISOString(),
-      invoices: invoices.map((invoice) => ({
-        ...invoice,
-        dataEmissao: invoice.dataEmissao.toISOString(),
-      })),
-    },
-    null,
-    2,
-  );
-}
 
 function parseJsonImport(content: string): ImportParseResult {
   const errors: string[] = [];
@@ -416,47 +400,4 @@ export function invoiceImportSummary(item: InvoiceImportItem) {
     valor: item.form.servico.valorServico,
     status: item.status ?? "emitida",
   };
-}
-
-export function buildInvoicesFromImport(
-  items: InvoiceImportItem[],
-  existing: Invoice[],
-  startCounters: { idCounter: number; seq: number },
-): { invoices: Invoice[]; skipped: string[]; counters: { idCounter: number; seq: number } } {
-  const skipped: string[] = [];
-  const imported: Invoice[] = [];
-  let { idCounter, seq } = startCounters;
-
-  const existingNumbers = new Set(existing.map((i) => i.numero));
-
-  for (const item of items) {
-    const numero = item.numero ?? String(seq).padStart(6, "0");
-
-    if (item.numero && existingNumbers.has(item.numero)) {
-      skipped.push(`Nº ${item.numero} já existe`);
-      continue;
-    }
-
-    const invoice: Invoice = {
-      id: idCounter++,
-      numero,
-      serie: item.serie ?? "1",
-      status: item.status ?? "emitida",
-      dataEmissao: item.dataEmissao ? new Date(item.dataEmissao) : new Date(),
-      codigoVerificacao: item.codigoVerificacao ?? null,
-      ...JSON.parse(JSON.stringify(item.form)),
-    };
-
-    imported.push(invoice);
-    existingNumbers.add(numero);
-
-    const numeric = parseInt(numero, 10);
-    if (!item.numero && numeric >= seq) seq = numeric + 1;
-    if (item.numero) {
-      const n = parseInt(item.numero, 10);
-      if (n >= seq) seq = n + 1;
-    }
-  }
-
-  return { invoices: imported, skipped, counters: { idCounter, seq } };
 }

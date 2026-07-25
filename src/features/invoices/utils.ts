@@ -38,11 +38,6 @@ export function calcInvoiceTotals(servico: Servico): InvoiceTotals {
   return { baseCalculo, valorIss, valorLiquido };
 }
 
-export function generateVerificationCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-}
-
 export const STATUS_META = {
   emitida: {
     label: "Emitida",

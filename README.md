@@ -6,8 +6,23 @@ Frontend do NexFiscal — gestão de propostas comerciais e notas fiscais de ser
 
 ```sh
 npm install
+cp .env.example .env
 npm run dev
 ```
+
+O front consome a API em `http://localhost:8085/api` (configurável via `VITE_API_URL`). **Todos os dados** (propostas, notas, prestador) vêm do backend — a API precisa estar rodando para usar o app.
+
+### API local
+
+O backend fica em [`nexfiscal-api`](../nexfiscal-api). Para subir PostgreSQL + API:
+
+```sh
+cd ../nexfiscal-api
+docker compose up -d postgres
+./mvnw spring-boot:run
+```
+
+Credenciais padrão: `admin@nexfiscal.local` / `admin123`
 
 ## Scripts
 

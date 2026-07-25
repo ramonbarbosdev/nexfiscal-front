@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as NotasFiscaisRouteImport } from './routes/notas-fiscais'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotasFiscaisRoute = NotasFiscaisRouteImport.update({
@@ -25,27 +31,31 @@ const NotasFiscaisRoute = NotasFiscaisRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/notas-fiscais': typeof NotasFiscaisRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/notas-fiscais': typeof NotasFiscaisRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/notas-fiscais': typeof NotasFiscaisRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/notas-fiscais'
+  fullPaths: '/' | '/login' | '/notas-fiscais'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/notas-fiscais'
-  id: '__root__' | '/' | '/notas-fiscais'
+  to: '/' | '/login' | '/notas-fiscais'
+  id: '__root__' | '/' | '/login' | '/notas-fiscais'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
   NotasFiscaisRoute: typeof NotasFiscaisRoute
 }
 
@@ -56,6 +66,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notas-fiscais': {
@@ -70,6 +87,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LoginRoute: LoginRoute,
   NotasFiscaisRoute: NotasFiscaisRoute,
 }
 export const routeTree = rootRouteImport
