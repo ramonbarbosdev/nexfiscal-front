@@ -29,6 +29,7 @@ type ProposalsListProps = {
 const ROW_STATUS_CLASS: Record<ProposalStatus, string> = {
   pendente: "nf-ledger-row--pendente",
   aprovada: "nf-ledger-row--aprovada",
+  concluida: "nf-ledger-row--concluida",
   cancelada: "nf-ledger-row--cancelada",
 };
 
@@ -120,6 +121,7 @@ export function ProposalsList({
                   <SelectContent>
                     <SelectItem value="pendente">Pendente</SelectItem>
                     <SelectItem value="aprovada">Aprovada</SelectItem>
+                    <SelectItem value="concluida">Concluída</SelectItem>
                     <SelectItem value="cancelada">Cancelada</SelectItem>
                   </SelectContent>
                 </Select>

@@ -1,14 +1,29 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import html2canvas from "html2canvas";
-import { Copy, FileDown, Image, Link, MessageCircle, Pencil, Trash2 } from "lucide-react";
+import {
+  CheckCircle2,
+  Copy,
+  FileDown,
+  FileText,
+  Image,
+  Link,
+  MessageCircle,
+  Pencil,
+  Receipt,
+  Trash2,
+} from "lucide-react";
 
 import { DeleteConfirmDialog } from "@/components/form/delete-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 import { ReceiptCard } from "./receipt-card";
+import { ServiceReportCard } from "./service-report-card";
 import { calcItemsTotal, formatBRL } from "./utils";
-import type { Proposal } from "./types";
+import type { Proposal, ProposalStatus } from "./types";
+
+type PreviewMode = "proposta" | "relatorio";
 
 type PreviewModalProps = {
   proposal: Proposal | null;
@@ -17,7 +32,10 @@ type PreviewModalProps = {
   onDuplicate: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onStatusChange: (status: ProposalStatus) => void;
+  onGenerateInvoice: () => void;
   isDeleting?: boolean;
+  isGeneratingInvoice?: boolean;
   onToast: (message: string) => void;
 };
 
@@ -28,18 +46,45 @@ export function PreviewModal({
   onDuplicate,
   onEdit,
   onDelete,
+  onStatusChange,
+  onGenerateInvoice,
   isDeleting,
+  isGeneratingInvoice,
   onToast,
 }: PreviewModalProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [mode, setMode] = useState<PreviewMode>("proposta");
+
+  useEffect(() => {
+    if (!open || !proposal) return;
+    setMode(proposal.status === "concluida" ? "relatorio" : "proposta");
+  }, [open, proposal?.id, proposal?.status]);
 
   if (!proposal) return null;
 
   const total = calcItemsTotal(proposal.itens) - (proposal.desconto || 0);
+  const isReport = mode === "relatorio";
 
   const shareWhatsApp = () => {
-    const text = `Proposta Nº ${proposal.numero}%0A${proposal.empresa.nome}%0A%0ACliente: ${proposal.cliente.nome}%0AProjeto: ${proposal.projeto.titulo}%0ATotal: ${formatBRL(total).replace(/\s/g, " ")}`;
+    const lines = isReport
+      ? [
+          `Relatório de serviços — Proposta Nº ${proposal.numero}`,
+          proposal.empresa.nome,
+          "",
+          `Cliente: ${proposal.cliente.nome}`,
+          `Serviço: ${proposal.projeto.titulo}`,
+          `Valor: ${formatBRL(total).replace(/\s/g, " ")}`,
+        ]
+      : [
+          `Proposta Nº ${proposal.numero}`,
+          proposal.empresa.nome,
+          "",
+          `Cliente: ${proposal.cliente.nome}`,
+          `Projeto: ${proposal.projeto.titulo}`,
+          `Total: ${formatBRL(total).replace(/\s/g, " ")}`,
+        ];
+    const text = lines.join("%0A");
     window.open(`https://wa.me/?text=${text}`, "_blank");
   };
 
@@ -49,7 +94,7 @@ export function PreviewModal({
     onToast("Gerando imagem...");
     const canvas = await html2canvas(node, { backgroundColor: null, scale: 2 });
     const link = document.createElement("a");
-    link.download = `proposta-${proposal.numero}.png`;
+    link.download = isReport ? `relatorio-${proposal.numero}.png` : `proposta-${proposal.numero}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
   };
@@ -60,13 +105,46 @@ export function PreviewModal({
       .then(() => onToast("Link copiado!"));
   };
 
+  const markConcluida = () => {
+    onStatusChange("concluida");
+    setMode("relatorio");
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex h-[95vh] max-h-[95vh] w-full max-w-[560px] flex-col gap-0 overflow-hidden rounded-t-3xl p-0 sm:h-auto sm:max-h-[92vh] sm:rounded-3xl">
-        <DialogTitle className="sr-only">Pré-visualização da proposta</DialogTitle>
+        <DialogTitle className="sr-only">
+          {isReport ? "Relatório de serviços" : "Pré-visualização da proposta"}
+        </DialogTitle>
 
-        <div className="flex h-14 shrink-0 items-center justify-between border-b px-4 sm:px-5">
+        <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b px-4 sm:px-5">
           <span className="text-sm font-semibold">Pré-visualização</span>
+          <div className="flex rounded-lg border border-border p-0.5">
+            <button
+              type="button"
+              onClick={() => setMode("proposta")}
+              className={cn(
+                "rounded-md px-2.5 py-1 text-[11px] font-medium transition",
+                mode === "proposta"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Proposta
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("relatorio")}
+              className={cn(
+                "rounded-md px-2.5 py-1 text-[11px] font-medium transition",
+                mode === "relatorio"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Relatório
+            </button>
+          </div>
         </div>
 
         <div
@@ -74,11 +152,32 @@ export function PreviewModal({
           className="flex flex-1 justify-center overflow-y-auto bg-[#EEEEF1] px-3 py-5 dark:bg-black sm:px-8 sm:py-8"
         >
           <div ref={receiptRef}>
-            <ReceiptCard proposal={proposal} />
+            {isReport ? <ServiceReportCard proposal={proposal} /> : <ReceiptCard proposal={proposal} />}
           </div>
         </div>
 
         <div className="shrink-0 border-t p-3 sm:p-4">
+          {proposal.status !== "concluida" && proposal.status !== "cancelada" ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="mb-2 h-10 w-full rounded-xl"
+              onClick={markConcluida}
+            >
+              <CheckCircle2 className="h-4 w-4" /> Marcar serviço como concluído
+            </Button>
+          ) : null}
+
+          <Button
+            type="button"
+            className="mb-2 h-11 w-full rounded-xl"
+            onClick={onGenerateInvoice}
+            disabled={isGeneratingInvoice || proposal.status === "cancelada"}
+          >
+            <Receipt className="h-4 w-4" />
+            {isGeneratingInvoice ? "Abrindo NFS-e…" : "Gerar NFS-e a partir desta proposta"}
+          </Button>
+
           <Button
             type="button"
             variant="outline"
@@ -113,6 +212,12 @@ export function PreviewModal({
               <Pencil className="h-4 w-4" /> Editar
             </Button>
           </div>
+          {isReport ? (
+            <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-[10px] text-muted-foreground">
+              <FileText className="h-3 w-3" />
+              Envie o relatório para o cliente conferir antes de emitir a NFS-e.
+            </p>
+          ) : null}
         </div>
       </DialogContent>
 

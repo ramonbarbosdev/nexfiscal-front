@@ -1,4 +1,4 @@
-export type ProposalStatus = "pendente" | "aprovada" | "cancelada";
+export type ProposalStatus = "pendente" | "aprovada" | "cancelada" | "concluida";
 
 export type ProposalItem = {
   id: number;

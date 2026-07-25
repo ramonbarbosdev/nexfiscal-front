@@ -7,6 +7,7 @@ export const PROPOSAL_STATUS_OPTIONS = [
   { value: "all", label: "Todos os status" },
   { value: "pendente", label: "Pendente" },
   { value: "aprovada", label: "Aprovada" },
+  { value: "concluida", label: "Concluída" },
   { value: "cancelada", label: "Cancelada" },
 ];
 

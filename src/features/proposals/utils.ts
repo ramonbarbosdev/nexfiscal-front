@@ -38,4 +38,8 @@ export const STATUS_META = {
     label: "Cancelada",
     className: "nf-status nf-status--muted",
   },
+  concluida: {
+    label: "Concluída",
+    className: "nf-status nf-status--success",
+  },
 } as const;

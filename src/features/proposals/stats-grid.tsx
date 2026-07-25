@@ -5,16 +5,18 @@ import { StatsStrip } from "@/components/layout/stats-strip";
 function buildStats(proposals: Proposal[]) {
   const total = proposals.length;
   const vendido = proposals
-    .filter((p) => p.status === "aprovada")
+    .filter((p) => p.status === "aprovada" || p.status === "concluida")
     .reduce((sum, p) => sum + (calcItemsTotal(p.itens) - p.desconto), 0);
   const aprovadas = proposals.filter((p) => p.status === "aprovada").length;
   const pendentes = proposals.filter((p) => p.status === "pendente").length;
+  const concluidas = proposals.filter((p) => p.status === "concluida").length;
   const canceladas = proposals.filter((p) => p.status === "cancelada").length;
 
   return [
     { label: "Total", value: total },
     { label: "Vendido", value: formatBRL(vendido), highlight: true },
     { label: "Aprovadas", value: aprovadas },
+    { label: "Concluídas", value: concluidas },
     { label: "Pendentes", value: pendentes },
     { label: "Canceladas", value: canceladas },
   ];

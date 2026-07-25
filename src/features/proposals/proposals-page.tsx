@@ -1,11 +1,17 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 
 import { ListToolbar } from "@/components/list/list-toolbar";
 import { ApiQueryState } from "@/components/layout/api-query-state";
 import { AppShell } from "@/components/layout/app-shell";
 import { AppToast } from "@/components/layout/app-toast";
 import { Button } from "@/components/ui/button";
+import { fetchPrestadorConfig } from "@/features/invoices/api";
+import {
+  proposalToInvoiceForm,
+  stashInvoiceFromProposal,
+} from "@/features/invoices/proposal-to-invoice";
 import { useListControls } from "@/hooks/use-list-controls";
 import { useTheme } from "@/hooks/use-theme";
 import { useDirtyForm } from "@/hooks/use-dirty-form";
@@ -22,11 +28,12 @@ import { PreviewModal } from "./preview-modal";
 import { ProposalDrawer } from "./proposal-drawer";
 import { ProposalsList } from "./proposals-list";
 import { StatsGrid } from "./stats-grid";
-import type { Proposal, ProposalForm, ProposalSaveMeta } from "./types";
+import type { Proposal, ProposalForm, ProposalSaveMeta, ProposalStatus } from "./types";
 import { defaultProposalSaveMeta } from "./types";
 import { useProposals } from "./use-proposals";
 
 export function ProposalsPage() {
+  const navigate = useNavigate();
   const { isDark, toggle: toggleTheme } = useTheme();
   const { message, variant, show: showToast } = useToast();
   const {
@@ -66,6 +73,7 @@ export function ProposalsPage() {
     reset: resetSaveMeta,
   } = useDirtyForm<ProposalSaveMeta>(defaultProposalSaveMeta());
   const [previewId, setPreviewId] = useState<number | null>(null);
+  const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
 
   const previewProposal = previewId ? proposals.find((p) => p.id === previewId) ?? null : null;
   const editingProposal = editingId ? proposals.find((p) => p.id === editingId) ?? null : null;
@@ -112,12 +120,34 @@ export function ProposalsPage() {
     setForm({ ...form, itens: form.itens.filter((item) => item.id !== id) });
   };
 
-  const handleStatusChange = async (id: number, status: Parameters<typeof changeStatus>[1]) => {
+  const handleStatusChange = async (id: number, status: ProposalStatus) => {
     try {
       await changeStatus(id, status);
       showToast("Status atualizado");
     } catch (error) {
       showToast(error instanceof ApiError ? error.message : "Erro ao atualizar status", "error");
+    }
+  };
+
+  const handlePreviewStatusChange = async (status: ProposalStatus) => {
+    if (previewId === null) return;
+    await handleStatusChange(previewId, status);
+  };
+
+  const handleGenerateInvoice = async () => {
+    if (!previewProposal) return;
+    setIsGeneratingInvoice(true);
+    try {
+      const prestador = await fetchPrestadorConfig();
+      const invoiceForm = proposalToInvoiceForm(previewProposal, prestador);
+      stashInvoiceFromProposal(invoiceForm, previewProposal);
+      setPreviewOpen(false);
+      await navigate({ to: "/notas-fiscais" });
+      showToast("Revise os dados e salve a NFS-e");
+    } catch (error) {
+      showToast(error instanceof ApiError ? error.message : "Erro ao preparar NFS-e", "error");
+    } finally {
+      setIsGeneratingInvoice(false);
     }
   };
 
@@ -248,7 +278,10 @@ export function ProposalsPage() {
         onDelete={() => {
           if (previewId !== null) void handleDelete(previewId);
         }}
+        onStatusChange={(status) => void handlePreviewStatusChange(status)}
+        onGenerateInvoice={() => void handleGenerateInvoice()}
         isDeleting={isDeleting}
+        isGeneratingInvoice={isGeneratingInvoice}
         onToast={showToast}
       />
 

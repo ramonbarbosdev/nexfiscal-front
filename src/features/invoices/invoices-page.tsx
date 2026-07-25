@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, Upload } from "lucide-react";
 
 import { ListToolbar } from "@/components/list/list-toolbar";
@@ -24,6 +24,7 @@ import { InvoicesList } from "./invoices-list";
 import { PreviewModal } from "./preview-modal";
 import { StatsGrid } from "./stats-grid";
 import type { Invoice, InvoiceForm } from "./types";
+import { consumeInvoiceFromProposal } from "./proposal-to-invoice";
 import { useInvoices } from "./use-invoices";
 
 export function InvoicesPage() {
@@ -65,6 +66,18 @@ export function InvoicesPage() {
     useDirtyForm<InvoiceForm>();
   const [previewId, setPreviewId] = useState<number | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const consumedProposalRef = useRef(false);
+
+  useEffect(() => {
+    if (!isPrestadorReady || consumedProposalRef.current) return;
+    const pending = consumeInvoiceFromProposal();
+    if (!pending) return;
+    consumedProposalRef.current = true;
+    setEditingId(null);
+    resetForm(pending.form);
+    setDrawerOpen(true);
+    showToast(`NFS-e pré-preenchida da proposta Nº ${pending.proposalNumero}`);
+  }, [isPrestadorReady, resetForm, showToast]);
 
   const previewInvoice = previewId ? invoices.find((i) => i.id === previewId) ?? null : null;
   const editingInvoice = editingId ? invoices.find((i) => i.id === editingId) ?? null : null;
