@@ -150,15 +150,13 @@ export function ProposalDrawer({
     onSave(saveMeta);
   };
 
-  const selectEmpresa = (value: string) => {
-    if (value === "none") {
-      onSaveMetaChange({ ...saveMeta, empresaId: null });
-      return;
-    }
-    const empresa = empresas.find((e) => e.id === Number(value));
+  if (!form) return null;
+
+  const applyEmpresa = (empresaId: number) => {
+    const empresa = empresas.find((e) => e.id === empresaId);
     if (!empresa) return;
     onFormChange({
-      ...form!,
+      ...form,
       empresa: {
         logo: empresa.logo,
         nome: empresa.nome,
@@ -170,29 +168,39 @@ export function ProposalDrawer({
     onSaveMetaChange({ ...saveMeta, empresaId: empresa.id });
   };
 
-  const selectCliente = (value: string) => {
-    if (value === "none") {
-      onSaveMetaChange({ ...saveMeta, clienteId: null });
-      return;
-    }
-    const cliente = clientes.find((c) => c.id === Number(value));
+  const applyCliente = (clienteId: number) => {
+    const cliente = clientes.find((c) => c.id === clienteId);
     if (!cliente) return;
     onFormChange({
-      ...form!,
+      ...form,
       cliente: { nome: cliente.nome, telefone: cliente.telefone },
     });
     onSaveMetaChange({ ...saveMeta, clienteId: cliente.id });
   };
 
-  if (!form) return null;
-
   const update = (patch: Partial<ProposalForm>) => onFormChange({ ...form, ...patch });
   const updateEmpresa = (key: keyof ProposalForm["empresa"], value: string) => {
     clearFieldError(`empresa.${key}`);
+    if (key === "nome") {
+      const linked = saveMeta.empresaId
+        ? empresas.find((e) => e.id === saveMeta.empresaId)
+        : null;
+      if (linked && linked.nome !== value) {
+        onSaveMetaChange({ ...saveMeta, empresaId: null });
+      }
+    }
     onFormChange({ ...form, empresa: { ...form.empresa, [key]: value } });
   };
   const updateCliente = (key: keyof ProposalForm["cliente"], value: string) => {
     clearFieldError(`cliente.${key}`);
+    if (key === "nome") {
+      const linked = saveMeta.clienteId
+        ? clientes.find((c) => c.id === saveMeta.clienteId)
+        : null;
+      if (linked && linked.nome !== value) {
+        onSaveMetaChange({ ...saveMeta, clienteId: null });
+      }
+    }
     onFormChange({ ...form, cliente: { ...form.cliente, [key]: value } });
   };
   const updateProjeto = (key: keyof ProposalForm["projeto"], value: string) => {
@@ -241,26 +249,6 @@ export function ProposalDrawer({
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           {tab === "empresa" && (
             <FormSection title="Dados da empresa" description="Informações do prestador na proposta.">
-              {empresas.length > 0 ? (
-                <FormField label="Empresa cadastrada">
-                  <Select
-                    value={saveMeta.empresaId ? String(saveMeta.empresaId) : "none"}
-                    onValueChange={selectEmpresa}
-                  >
-                    <SelectTrigger className="h-10 border-border bg-background">
-                      <SelectValue placeholder="Selecionar empresa" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Digitar manualmente</SelectItem>
-                      {empresas.map((empresa) => (
-                        <SelectItem key={empresa.id} value={String(empresa.id)}>
-                          {empresa.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormField>
-              ) : null}
               <div className="flex items-start gap-4">
                 <FormField label="Logo">
                   <label
@@ -282,9 +270,12 @@ export function ProposalDrawer({
                   />
                 </FormField>
                 <FormField label="Nome da empresa" required className="flex-1" error={getFieldError(fieldErrors, "empresa.nome")}>
-                  <Input
+                  <SuggestInput
                     value={form.empresa.nome}
-                    onChange={(e) => updateEmpresa("nome", e.target.value)}
+                    onChange={(value) => updateEmpresa("nome", value)}
+                    onSelect={(option) => applyEmpresa(Number(option.id))}
+                    options={empresaOptions}
+                    placeholder="Digite para buscar no cadastro..."
                     className={inputClassName}
                   />
                 </FormField>
@@ -330,31 +321,14 @@ export function ProposalDrawer({
 
           {tab === "cliente" && (
             <FormSection title="Dados do cliente">
-              {clientes.length > 0 ? (
-                <FormField label="Cliente cadastrado">
-                  <Select
-                    value={saveMeta.clienteId ? String(saveMeta.clienteId) : "none"}
-                    onValueChange={selectCliente}
-                  >
-                    <SelectTrigger className="h-10 border-border bg-background">
-                      <SelectValue placeholder="Selecionar cliente" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Digitar manualmente</SelectItem>
-                      {clientes.map((cliente) => (
-                        <SelectItem key={cliente.id} value={String(cliente.id)}>
-                          {cliente.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormField>
-              ) : null}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField label="Nome" required className="sm:col-span-2" error={getFieldError(fieldErrors, "cliente.nome")}>
-                  <Input
+                  <SuggestInput
                     value={form.cliente.nome}
-                    onChange={(e) => updateCliente("nome", e.target.value)}
+                    onChange={(value) => updateCliente("nome", value)}
+                    onSelect={(option) => applyCliente(Number(option.id))}
+                    options={clienteOptions}
+                    placeholder="Digite para buscar no cadastro..."
                     className={inputClassName}
                   />
                 </FormField>
