@@ -4,6 +4,7 @@ export type Empresa = {
   id: number;
   logo: string;
   nome: string;
+  cnpj: string;
   whatsapp: string;
   instagram: string;
   email: string;

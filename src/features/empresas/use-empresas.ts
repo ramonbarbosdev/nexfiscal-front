@@ -11,6 +11,7 @@ import type { Empresa, EmpresaForm } from "./types";
 const blankForm = (): EmpresaForm => ({
   logo: "",
   nome: "",
+  cnpj: "",
   whatsapp: "",
   instagram: "",
   email: "",
@@ -76,6 +77,7 @@ export function useEmpresas() {
     cloneFormFromEmpresa: (empresa: Empresa): EmpresaForm => ({
       logo: empresa.logo,
       nome: empresa.nome,
+      cnpj: empresa.cnpj,
       whatsapp: empresa.whatsapp,
       instagram: empresa.instagram,
       email: empresa.email,

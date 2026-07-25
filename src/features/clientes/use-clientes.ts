@@ -10,6 +10,8 @@ import type { Cliente, ClienteForm } from "./types";
 
 const blankForm = (): ClienteForm => ({
   nome: "",
+  tipo: "pf",
+  cpfCnpj: "",
   telefone: "",
   endereco: blankAddress(),
 });
@@ -72,6 +74,8 @@ export function useClientes() {
     createBlankForm: blankForm,
     cloneFormFromCliente: (cliente: Cliente): ClienteForm => ({
       nome: cliente.nome,
+      tipo: cliente.tipo,
+      cpfCnpj: cliente.cpfCnpj,
       telefone: cliente.telefone,
       endereco: { ...cliente.endereco },
     }),

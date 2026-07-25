@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Loader2, Trash2 } from "lucide-react";
 
 import { AddressFields } from "@/components/form/address-fields";
 import { DeleteConfirmDialog } from "@/components/form/delete-confirm-dialog";
@@ -16,7 +16,12 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useCepLookup } from "@/features/cep/use-cep-lookup";
+import type { CnpjLookup } from "@/features/cnpj/api";
+import { companyDisplayName, mergeCnpjAddress } from "@/features/cnpj/merge-cnpj-fields";
+import { useCnpjAutoFill } from "@/features/cnpj/use-cnpj-auto-fill";
 import { useToast } from "@/hooks/use-toast";
+import { onlyDigits } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 import type { Cliente, ClienteForm } from "./types";
 
@@ -45,8 +50,37 @@ export function ClienteDrawer({
 }: ClienteDrawerProps) {
   const [nomeError, setNomeError] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const formRef = useRef(form);
+  formRef.current = form;
+
   const { lookupCep } = useCepLookup();
   const { show: showToast } = useToast();
+
+  const applyFromCnpj = useCallback(
+    (data: CnpjLookup) => {
+      const current = formRef.current;
+      if (!current) return;
+      onFormChange({
+        ...current,
+        nome: companyDisplayName(data) || current.nome,
+        cpfCnpj: data.cnpj || current.cpfCnpj,
+        telefone: data.telefone || current.telefone,
+        endereco: mergeCnpjAddress(current.endereco, data.endereco),
+      });
+    },
+    [onFormChange],
+  );
+
+  const handleLookupError = useCallback(
+    (message: string) => showToast(message, "warning"),
+    [showToast],
+  );
+
+  const { loading: cnpjLoading, resetLookup: resetCnpjLookup } = useCnpjAutoFill(
+    form?.tipo === "pj" ? form.cpfCnpj : "",
+    applyFromCnpj,
+    handleLookupError,
+  );
 
   useEffect(() => {
     if (open) {
@@ -57,7 +91,7 @@ export function ClienteDrawer({
 
   if (!form) return null;
 
-  const update = (key: keyof ClienteForm, value: string) => {
+  const update = <K extends keyof ClienteForm>(key: K, value: ClienteForm[K]) => {
     if (key === "nome") setNomeError("");
     onFormChange({ ...form, [key]: value });
   };
@@ -78,9 +112,61 @@ export function ClienteDrawer({
         </SheetHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
-          <FormSection title="Dados do cliente" description="Clientes usados nas suas propostas.">
+          <FormSection
+            title="Dados do cliente"
+            description={
+              form.tipo === "pj"
+                ? "Informe o CNPJ para preencher automaticamente."
+                : "Clientes usados nas suas propostas."
+            }
+          >
+            <FormField label="Tipo de pessoa">
+              <div className="grid grid-cols-2 gap-2">
+                {(["pf", "pj"] as const).map((tipo) => (
+                  <button
+                    key={tipo}
+                    type="button"
+                    onClick={() => update("tipo", tipo)}
+                    className={cn(
+                      "h-10 rounded-lg border text-sm font-medium transition",
+                      form.tipo === tipo
+                        ? "border-primary bg-primary/5 text-foreground"
+                        : "border-border text-muted-foreground",
+                    )}
+                  >
+                    {tipo === "pf" ? "Pessoa física" : "Pessoa jurídica"}
+                  </button>
+                ))}
+              </div>
+            </FormField>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FormField label="Nome" required className="sm:col-span-2" error={nomeError}>
+              <FormField
+                label={form.tipo === "pj" ? "CNPJ" : "CPF"}
+                className="sm:col-span-2"
+                hint={form.tipo === "pj" && cnpjLoading ? "Buscando dados do CNPJ..." : undefined}
+              >
+                <div className="relative">
+                  <MaskedInput
+                    mask={form.tipo === "pj" ? "cnpj" : "cpf"}
+                    value={form.cpfCnpj}
+                    onValueChange={(v) => {
+                      if (form.tipo === "pj" && onlyDigits(v).length < 14) {
+                        resetCnpjLookup();
+                      }
+                      update("cpfCnpj", v);
+                    }}
+                  />
+                  {form.tipo === "pj" && cnpjLoading ? (
+                    <Loader2 className="absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                  ) : null}
+                </div>
+              </FormField>
+              <FormField
+                label={form.tipo === "pj" ? "Razão social" : "Nome completo"}
+                required
+                className="sm:col-span-2"
+                error={nomeError}
+              >
                 <Input
                   value={form.nome}
                   onChange={(e) => update("nome", e.target.value)}
@@ -103,7 +189,7 @@ export function ClienteDrawer({
               value={form.endereco}
               onChange={(endereco) => onFormChange({ ...form, endereco })}
               onLookupCep={lookupCep}
-              onCepError={(message) => showToast(message, "warning")}
+              onCepError={handleLookupError}
             />
           </FormSection>
         </div>

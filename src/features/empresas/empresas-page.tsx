@@ -12,6 +12,7 @@ import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { useToast } from "@/hooks/use-toast";
 import { ApiError } from "@/lib/api-client";
 import { formatAddressLine } from "@/lib/address";
+import { formatCpfCnpj } from "@/lib/format";
 
 import { EmpresaDrawer } from "./empresa-drawer";
 import type { Empresa, EmpresaForm } from "./types";
@@ -48,7 +49,8 @@ export function EmpresasPage() {
       (e) =>
         e.nome.toLowerCase().includes(q) ||
         e.email.toLowerCase().includes(q) ||
-        e.whatsapp.includes(q),
+        e.whatsapp.includes(q) ||
+        e.cnpj.replace(/\D/g, "").includes(q.replace(/\D/g, "")),
     );
   }, [empresas, search]);
 
@@ -161,7 +163,7 @@ export function EmpresasPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{empresa.nome}</p>
                     <p className="truncate text-sm text-muted-foreground">
-                      {[empresa.whatsapp, empresa.email, formatAddressLine(empresa.endereco)]
+                      {[empresa.cnpj ? formatCpfCnpj(empresa.cnpj) : null, empresa.whatsapp, empresa.email, formatAddressLine(empresa.endereco)]
                         .filter(Boolean)
                         .join(" · ") || "—"}
                     </p>

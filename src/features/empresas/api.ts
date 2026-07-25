@@ -10,6 +10,7 @@ type ApiEmpresa = {
   id: number;
   logo: string;
   nome: string;
+  cnpj: string;
   whatsapp: string;
   instagram: string;
   email: string;
@@ -35,6 +36,7 @@ function mapEmpresa(dto: ApiEmpresa): Empresa {
     id: dto.id,
     logo: dto.logo ?? "",
     nome: dto.nome,
+    cnpj: dto.cnpj ?? "",
     whatsapp: dto.whatsapp ?? "",
     instagram: dto.instagram ?? "",
     email: dto.email ?? "",

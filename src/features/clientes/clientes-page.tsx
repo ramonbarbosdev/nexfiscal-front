@@ -12,6 +12,7 @@ import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { useToast } from "@/hooks/use-toast";
 import { ApiError } from "@/lib/api-client";
 import { formatAddressLine } from "@/lib/address";
+import { formatCpfCnpj } from "@/lib/format";
 
 import { ClienteDrawer } from "./cliente-drawer";
 import type { Cliente, ClienteForm } from "./types";
@@ -45,7 +46,10 @@ export function ClientesPage() {
     const q = search.trim().toLowerCase();
     if (!q) return clientes;
     return clientes.filter(
-      (c) => c.nome.toLowerCase().includes(q) || c.telefone.includes(q),
+      (c) =>
+        c.nome.toLowerCase().includes(q) ||
+        c.telefone.includes(q) ||
+        c.cpfCnpj.replace(/\D/g, "").includes(q.replace(/\D/g, "")),
     );
   }, [clientes, search]);
 
@@ -154,7 +158,7 @@ export function ClientesPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{cliente.nome}</p>
                     <p className="truncate text-sm text-muted-foreground">
-                      {[cliente.telefone, formatAddressLine(cliente.endereco)]
+                      {[cliente.cpfCnpj ? formatCpfCnpj(cliente.cpfCnpj) : null, cliente.telefone, formatAddressLine(cliente.endereco)]
                         .filter(Boolean)
                         .join(" · ") || "—"}
                     </p>

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { ImagePlus, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 
 import { AddressFields } from "@/components/form/address-fields";
 import { DeleteConfirmDialog } from "@/components/form/delete-confirm-dialog";
@@ -16,7 +16,11 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useCepLookup } from "@/features/cep/use-cep-lookup";
+import type { CnpjLookup } from "@/features/cnpj/api";
+import { companyDisplayName, mergeCnpjAddress } from "@/features/cnpj/merge-cnpj-fields";
+import { useCnpjAutoFill } from "@/features/cnpj/use-cnpj-auto-fill";
 import { useToast } from "@/hooks/use-toast";
+import { onlyDigits } from "@/lib/format";
 
 import type { Empresa, EmpresaForm } from "./types";
 
@@ -45,8 +49,38 @@ export function EmpresaDrawer({
 }: EmpresaDrawerProps) {
   const [nomeError, setNomeError] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const formRef = useRef(form);
+  formRef.current = form;
+
   const { lookupCep } = useCepLookup();
   const { show: showToast } = useToast();
+
+  const applyFromCnpj = useCallback(
+    (data: CnpjLookup) => {
+      const current = formRef.current;
+      if (!current) return;
+      onFormChange({
+        ...current,
+        nome: companyDisplayName(data) || current.nome,
+        cnpj: data.cnpj || current.cnpj,
+        email: data.email || current.email,
+        whatsapp: data.telefone || current.whatsapp,
+        endereco: mergeCnpjAddress(current.endereco, data.endereco),
+      });
+    },
+    [onFormChange],
+  );
+
+  const handleLookupError = useCallback(
+    (message: string) => showToast(message, "warning"),
+    [showToast],
+  );
+
+  const { loading: cnpjLoading, resetLookup: resetCnpjLookup } = useCnpjAutoFill(
+    form?.cnpj ?? "",
+    applyFromCnpj,
+    handleLookupError,
+  );
 
   useEffect(() => {
     if (open) {
@@ -85,7 +119,24 @@ export function EmpresaDrawer({
         </SheetHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
-          <FormSection title="Dados da empresa" description="Empresas usadas nas suas propostas.">
+          <FormSection title="Dados da empresa" description="Informe o CNPJ para preencher automaticamente.">
+            <FormField label="CNPJ" hint={cnpjLoading ? "Buscando dados do CNPJ..." : undefined}>
+              <div className="relative">
+                <MaskedInput
+                  mask="cnpj"
+                  value={form.cnpj}
+                  onValueChange={(v) => {
+                    if (onlyDigits(v).length < 14) {
+                      resetCnpjLookup();
+                    }
+                    update("cnpj", v);
+                  }}
+                />
+                {cnpjLoading ? (
+                  <Loader2 className="absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                ) : null}
+              </div>
+            </FormField>
             <div className="flex items-start gap-4">
               <FormField label="Logo">
                 <label
@@ -146,7 +197,7 @@ export function EmpresaDrawer({
               value={form.endereco}
               onChange={(endereco) => onFormChange({ ...form, endereco })}
               onLookupCep={lookupCep}
-              onCepError={(message) => showToast(message, "warning")}
+              onCepError={handleLookupError}
             />
           </FormSection>
         </div>

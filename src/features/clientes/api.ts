@@ -9,6 +9,8 @@ type ApiPartyAddress = PartyAddress;
 type ApiCliente = {
   id: number;
   nome: string;
+  tipo: string;
+  cpfCnpj: string;
   telefone: string;
   endereco: ApiPartyAddress | null;
   createdAt: string;
@@ -31,6 +33,8 @@ function mapCliente(dto: ApiCliente): Cliente {
   return {
     id: dto.id,
     nome: dto.nome,
+    tipo: dto.tipo === "pj" ? "pj" : "pf",
+    cpfCnpj: dto.cpfCnpj ?? "",
     telefone: dto.telefone ?? "",
     endereco: mapAddress(dto.endereco),
     createdAt: new Date(dto.createdAt),
