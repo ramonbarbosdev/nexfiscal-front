@@ -72,12 +72,12 @@ export function ClienteDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-xl">
+      <SheetContent side="right" className="flex h-full w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
         <SheetHeader className="shrink-0 border-b px-4 py-4 sm:px-6">
           <SheetTitle>{editingCliente ? "Editar cliente" : "Novo cliente"}</SheetTitle>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           <FormSection title="Dados do cliente" description="Clientes usados nas suas propostas.">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField label="Nome" required className="sm:col-span-2" error={nomeError}>
@@ -108,7 +108,7 @@ export function ClienteDrawer({
           </FormSection>
         </div>
 
-        <SheetFooter className="shrink-0 flex-col gap-2 border-t px-4 py-3 sm:px-6 sm:py-4">
+        <SheetFooter className="relative z-10 shrink-0 flex-col gap-2 border-t bg-background px-4 py-3 sm:px-6 sm:py-4">
           {editingCliente && onDelete ? (
             <Button
               type="button"

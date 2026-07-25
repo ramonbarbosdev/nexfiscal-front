@@ -276,16 +276,17 @@ export function ProposalDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-[640px]">
-        <SheetHeader className="shrink-0 border-b px-4 py-4 sm:px-6">
-          <SheetTitle>{editingProposal ? "Editar proposta" : "Nova proposta"}</SheetTitle>
-        </SheetHeader>
+      <SheetContent side="right" className="flex h-full w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-[640px]">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <SheetHeader className="shrink-0 border-b px-4 py-4 sm:px-6">
+            <SheetTitle>{editingProposal ? "Editar proposta" : "Nova proposta"}</SheetTitle>
+          </SheetHeader>
 
-        <div className="shrink-0 px-4 pt-3 sm:px-6">
-          <FormTabs tabs={TABS} active={tab} onChange={setTab} invalidTabs={invalidTabs} />
-        </div>
+          <div className="shrink-0 px-4 pt-3 sm:px-6">
+            <FormTabs tabs={TABS} active={tab} onChange={setTab} invalidTabs={invalidTabs} />
+          </div>
 
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+          <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
           {tab === "empresa" && (
             <FormSection title="Dados da empresa" description="Informações do prestador na proposta.">
               <div className="flex items-start gap-4">
@@ -622,8 +623,9 @@ export function ProposalDrawer({
             </div>
           )}
         </div>
+        </div>
 
-        <SheetFooter className="shrink-0 flex-col gap-2 border-t px-4 py-3 sm:px-6 sm:py-4">
+        <SheetFooter className="relative z-20 shrink-0 flex-col gap-2 border-t bg-background px-4 py-3 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.25)] sm:px-6 sm:py-4 pointer-events-auto">
           {editingProposal && onDelete ? (
             <Button
               type="button"

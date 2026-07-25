@@ -162,6 +162,7 @@ export function ProposalsPage() {
       isDark={isDark}
       onToggleTheme={toggleTheme}
       mobileAction={
+        drawerOpen ? undefined : (
         <button
           type="button"
           onClick={() => openDrawer(null)}
@@ -170,6 +171,7 @@ export function ProposalsPage() {
         >
           <Plus className="h-5 w-5" />
         </button>
+        )
       }
     >
       <StatsGrid proposals={proposals} />

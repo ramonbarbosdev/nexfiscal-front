@@ -1,5 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -19,43 +18,6 @@ type SuggestInputProps = {
   className?: string;
   maxResults?: number;
 };
-
-type DropdownPosition = {
-  top: number;
-  left: number;
-  width: number;
-};
-
-function useDropdownPosition(anchorRef: React.RefObject<HTMLElement | null>, open: boolean) {
-  const [position, setPosition] = useState<DropdownPosition | null>(null);
-
-  useLayoutEffect(() => {
-    if (!open || !anchorRef.current) {
-      setPosition(null);
-      return;
-    }
-
-    const update = () => {
-      if (!anchorRef.current) return;
-      const rect = anchorRef.current.getBoundingClientRect();
-      setPosition({
-        top: rect.bottom + 4,
-        left: rect.left,
-        width: rect.width,
-      });
-    };
-
-    update();
-    window.addEventListener("scroll", update, true);
-    window.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("scroll", update, true);
-      window.removeEventListener("resize", update);
-    };
-  }, [anchorRef, open]);
-
-  return position;
-}
 
 export function SuggestInput({
   value,
@@ -79,7 +41,6 @@ export function SuggestInput({
   }, [value, options, maxResults]);
 
   const showSuggestions = open && filtered.length > 0;
-  const position = useDropdownPosition(containerRef, showSuggestions);
 
   useEffect(() => {
     if (!showSuggestions) return;
@@ -88,7 +49,6 @@ export function SuggestInput({
       const target = event.target;
       if (!(target instanceof Node)) return;
       if (containerRef.current?.contains(target)) return;
-      if (target instanceof Element && target.closest("[data-suggest-dropdown]")) return;
       setOpen(false);
     };
 
@@ -101,43 +61,6 @@ export function SuggestInput({
     setOpen(false);
     inputRef.current?.blur();
   };
-
-  const dropdown =
-    showSuggestions && position
-      ? createPortal(
-          <ul
-            data-suggest-dropdown=""
-            className="fixed z-[100] max-h-56 overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
-            style={{
-              top: position.top,
-              left: position.left,
-              width: position.width,
-            }}
-            role="listbox"
-          >
-            {filtered.map((option) => (
-              <li key={option.id}>
-                <button
-                  type="button"
-                  role="option"
-                  className={cn(
-                    "flex w-full flex-col rounded-sm px-2.5 py-2 text-left text-sm transition-colors",
-                    "hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none",
-                  )}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => handleSelect(option)}
-                >
-                  <span className="truncate font-medium">{option.label}</span>
-                  {option.subtitle ? (
-                    <span className="truncate text-xs text-muted-foreground">{option.subtitle}</span>
-                  ) : null}
-                </button>
-              </li>
-            ))}
-          </ul>,
-          document.body,
-        )
-      : null;
 
   return (
     <div ref={containerRef} className="relative">
@@ -158,7 +81,33 @@ export function SuggestInput({
           if (e.key === "Escape") setOpen(false);
         }}
       />
-      {dropdown}
+      {showSuggestions ? (
+        <ul
+          data-suggest-dropdown=""
+          className="absolute top-full right-0 left-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
+          role="listbox"
+        >
+          {filtered.map((option) => (
+            <li key={option.id}>
+              <button
+                type="button"
+                role="option"
+                className={cn(
+                  "flex w-full flex-col rounded-sm px-2.5 py-2 text-left text-sm transition-colors",
+                  "hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none",
+                )}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => handleSelect(option)}
+              >
+                <span className="truncate font-medium">{option.label}</span>
+                {option.subtitle ? (
+                  <span className="truncate text-xs text-muted-foreground">{option.subtitle}</span>
+                ) : null}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }

@@ -183,7 +183,7 @@ export function InvoiceDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-[640px]">
+      <SheetContent side="right" className="flex h-full w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-[640px]">
         <SheetHeader className="shrink-0 border-b px-4 py-4 sm:px-6">
           <SheetTitle>
             {editingInvoice ? `Editar NFS-e nº ${editingInvoice.numero}` : "Nova NFS-e"}
@@ -194,7 +194,7 @@ export function InvoiceDrawer({
           <FormTabs tabs={TABS} active={tab} onChange={setTab} invalidTabs={invalidTabs} />
         </div>
 
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           {tab === "prestador" && (
             <FormSection title="Prestador de serviço" description="Dados da sua empresa.">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -450,7 +450,7 @@ export function InvoiceDrawer({
           )}
         </div>
 
-        <SheetFooter className="shrink-0 flex-col gap-2 border-t px-4 py-3 sm:px-6 sm:py-4">
+        <SheetFooter className="relative z-10 shrink-0 flex-col gap-2 border-t bg-background px-4 py-3 sm:px-6 sm:py-4">
           {editingInvoice && onDelete && !isEmitted ? (
             <Button
               type="button"
