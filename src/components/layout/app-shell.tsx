@@ -4,15 +4,18 @@ import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/permissions";
 import { cn } from "@/lib/utils";
 
-const NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { to: "/", label: "Propostas", short: "Prop." },
   { to: "/empresas", label: "Empresas", short: "Emp." },
   { to: "/clientes", label: "Clientes", short: "Cli." },
   { to: "/itens", label: "Itens", short: "Itens" },
   { to: "/notas-fiscais", label: "Notas fiscais", short: "NFS-e" },
 ] as const;
+
+const ADMIN_NAV_ITEM = { to: "/administracao", label: "Administração", short: "Admin" } as const;
 
 type AppShellProps = {
   children: ReactNode;
@@ -23,8 +26,11 @@ type AppShellProps = {
 
 export function AppShell({ children, isDark, onToggleTheme, mobileAction }: AppShellProps) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
+  const navItems = hasPermission(user, "USER_VIEW")
+    ? [...BASE_NAV_ITEMS, ADMIN_NAV_ITEM]
+    : [...BASE_NAV_ITEMS];
 
   const handleLogout = async () => {
     logout();
@@ -45,7 +51,7 @@ export function AppShell({ children, isDark, onToggleTheme, mobileAction }: AppS
           </div>
 
           <nav className="flex-1 space-y-1 px-3 py-4">
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const active = pathname === item.to;
               return (
                 <Link
@@ -99,7 +105,7 @@ export function AppShell({ children, isDark, onToggleTheme, mobileAction }: AppS
             </div>
 
             <nav className="flex border-t border-border">
-              {NAV_ITEMS.map((item) => {
+              {navItems.map((item) => {
                 const active = pathname === item.to;
                 return (
                   <Link
