@@ -235,14 +235,25 @@ export function ProposalDrawer({
     if (index >= 0) clearFieldError(`itens.${index}.${field}`);
     onFormChange({
       ...form,
-      itens: form.itens.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              [field]: field === "desc" ? value : Number(value) || 0,
-            }
-          : item,
-      ),
+      itens: form.itens.map((item) => {
+        if (item.id !== id) return item;
+        if (field === "desc") {
+          const linked = item.catalogItemId
+            ? catalogItens.find((c) => c.id === item.catalogItemId)
+            : null;
+          const nextDesc = String(value);
+          const linkedDesc = linked
+            ? (linked.descricao.trim() || linked.nome)
+            : null;
+          const catalogItemId =
+            linked && linkedDesc === nextDesc ? item.catalogItemId : null;
+          return { ...item, desc: nextDesc, catalogItemId };
+        }
+        return {
+          ...item,
+          [field]: Number(value) || 0,
+        };
+      }),
     });
   };
 
@@ -258,7 +269,9 @@ export function ProposalDrawer({
     onFormChange({
       ...form,
       itens: form.itens.map((item) =>
-        item.id === lineId ? { ...item, desc, valor: catalogItem.precoPadrao } : item,
+        item.id === lineId
+          ? { ...item, desc, valor: catalogItem.precoPadrao, catalogItemId: catalogItem.id }
+          : item,
       ),
     });
   };

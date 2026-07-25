@@ -5,6 +5,7 @@ export type ProposalItem = {
   desc: string;
   qtd: number;
   valor: number;
+  catalogItemId?: number | null;
 };
 
 export type ProposalForm = {
@@ -38,6 +39,8 @@ export type Proposal = ProposalForm & {
   numero: string;
   status: ProposalStatus;
   createdAt: Date;
+  empresaId: number | null;
+  clienteId: number | null;
 };
 
 export type ProposalSaveMeta = {

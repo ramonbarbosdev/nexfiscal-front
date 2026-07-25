@@ -81,7 +81,11 @@ export function ProposalsPage() {
   const openDrawer = (existing: Proposal | null) => {
     setEditingId(existing?.id ?? null);
     resetForm(existing ? cloneFormFromProposal(existing) : createBlankForm());
-    resetSaveMeta(defaultProposalSaveMeta());
+    resetSaveMeta({
+      ...defaultProposalSaveMeta(),
+      empresaId: existing?.empresaId ?? null,
+      clienteId: existing?.clienteId ?? null,
+    });
     setDrawerOpen(true);
   };
 
@@ -257,7 +261,7 @@ export function ProposalsPage() {
         open={drawerOpen}
         editingProposal={editingProposal}
         form={form}
-        saveMeta={saveMeta}
+        saveMeta={saveMeta ?? defaultProposalSaveMeta()}
         onOpenChange={setDrawerOpen}
         onFormChange={setForm}
         onSaveMetaChange={setSaveMeta}

@@ -7,6 +7,7 @@ type ApiProposalItem = {
   desc: string;
   qtd: number;
   valor: number;
+  catalogItemId: number | null;
 };
 
 type ApiProposal = {
@@ -14,6 +15,8 @@ type ApiProposal = {
   numero: string;
   status: string;
   createdAt: string;
+  empresaId: number | null;
+  clienteId: number | null;
   empresa: ProposalForm["empresa"];
   cliente: ProposalForm["cliente"];
   projeto: ProposalForm["projeto"];
@@ -30,6 +33,8 @@ function mapProposal(dto: ApiProposal): Proposal {
     numero: dto.numero,
     status: dto.status as ProposalStatus,
     createdAt: new Date(dto.createdAt),
+    empresaId: dto.empresaId ?? null,
+    clienteId: dto.clienteId ?? null,
     empresa: dto.empresa,
     cliente: dto.cliente,
     projeto: dto.projeto,
@@ -38,6 +43,7 @@ function mapProposal(dto: ApiProposal): Proposal {
       desc: item.desc,
       qtd: Number(item.qtd),
       valor: Number(item.valor),
+      catalogItemId: item.catalogItemId ?? null,
     })),
     desconto: Number(dto.desconto),
     entrada: Number(dto.entrada),
@@ -56,6 +62,7 @@ function toFormPayload(form: ProposalForm) {
       desc: item.desc,
       qtd: item.qtd,
       valor: item.valor,
+      catalogItemId: item.catalogItemId ?? null,
     })),
     desconto: form.desconto,
     entrada: form.entrada,
