@@ -1,14 +1,10 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 import { LoginPage } from "@/features/auth/login-page";
-import { getToken } from "@/lib/api-client";
+import { redirectIfSession } from "@/lib/auth-session";
 
 export const Route = createFileRoute("/login")({
-  beforeLoad: () => {
-    if (getToken()) {
-      throw redirect({ to: "/" });
-    }
-  },
+  beforeLoad: redirectIfSession,
   component: LoginPage,
   head: () => ({
     meta: [{ title: "NexFiscal — Entrar" }],

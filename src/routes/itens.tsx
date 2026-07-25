@@ -1,15 +1,11 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 import { AuthGate } from "@/features/auth/auth-gate";
 import { ItensPage } from "@/features/itens/itens-page";
-import { getToken } from "@/lib/api-client";
+import { redirectIfNoSession } from "@/lib/auth-session";
 
 export const Route = createFileRoute("/itens")({
-  beforeLoad: () => {
-    if (!getToken()) {
-      throw redirect({ to: "/login" });
-    }
-  },
+  beforeLoad: redirectIfNoSession,
   component: () => (
     <AuthGate>
       <ItensPage />

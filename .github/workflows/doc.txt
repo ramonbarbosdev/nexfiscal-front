@@ -1,0 +1,21 @@
+Deploy NexFiscal Front — produção
+
+Arquivo:
+    .github/workflows/docker.yml
+
+Fluxo:
+    Push na main → Build Docker (Nitro node-server) → Push GHCR → SSH → Pull → Restart container
+
+Container:
+    nexfiscal-front-prod
+    Porta host: 3010 (container escuta na 80)
+    Rede Docker: network-nexfiscal
+
+GitHub — environment "prod":
+    Secrets:
+        SERVER_HOST
+        SERVER_USER
+        SERVER_SSH_KEY
+        SERVER_PORT
+    Variables:
+        VITE_API_URL (ex: https://api.nexfiscal.com.br/api)

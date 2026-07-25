@@ -1,5 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 
 import { ApiError, clearToken, getToken, setToken } from "@/lib/api-client";
 
@@ -15,9 +23,17 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function useHasStoredToken() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => Boolean(getToken()),
+    () => false,
+  );
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const hasToken = typeof window !== "undefined" && Boolean(getToken());
+  const hasToken = useHasStoredToken();
 
   const {
     data: user,
