@@ -8,6 +8,7 @@ import { AppToast } from "@/components/layout/app-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTheme } from "@/hooks/use-theme";
+import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { useToast } from "@/hooks/use-toast";
 import { ApiError } from "@/lib/api-client";
 import { formatAddressLine } from "@/lib/address";
@@ -36,7 +37,8 @@ export function EmpresasPage() {
   const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [form, setForm] = useState<EmpresaForm | null>(null);
+  const { value: form, setValue: setForm, isDirty: drawerDirty, reset: resetForm } =
+    useDirtyForm<EmpresaForm>();
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const filtered = useMemo(() => {
@@ -54,7 +56,7 @@ export function EmpresasPage() {
 
   const openDrawer = (existing: Empresa | null) => {
     setEditingId(existing?.id ?? null);
-    setForm(existing ? cloneFormFromEmpresa(existing) : createBlankForm());
+    resetForm(existing ? cloneFormFromEmpresa(existing) : createBlankForm());
     setDrawerOpen(true);
   };
 
@@ -75,7 +77,7 @@ export function EmpresasPage() {
       if (editingId === id) {
         setDrawerOpen(false);
         setEditingId(null);
-        setForm(null);
+        resetForm(null);
       }
       setDeleteId(null);
       showToast("Empresa excluída");
@@ -195,6 +197,7 @@ export function EmpresasPage() {
         onDelete={editingId ? () => void handleDelete(editingId) : undefined}
         isSaving={isSaving}
         isDeleting={isDeleting}
+        isDirty={drawerDirty}
       />
 
       <DeleteConfirmDialog

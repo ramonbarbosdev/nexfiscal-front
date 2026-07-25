@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ImagePlus, Trash2 } from "lucide-react";
 
 import { AddressFields } from "@/components/form/address-fields";
+import { ConfirmClose } from "@/components/form/confirm-close";
 import { DeleteConfirmDialog } from "@/components/form/delete-confirm-dialog";
 import { FormField } from "@/components/form/form-field";
 import { FormSection } from "@/components/form/form-section";
@@ -30,6 +31,7 @@ type EmpresaDrawerProps = {
   onDelete?: () => void;
   isSaving?: boolean;
   isDeleting?: boolean;
+  isDirty?: boolean;
 };
 
 export function EmpresaDrawer({
@@ -42,6 +44,7 @@ export function EmpresaDrawer({
   onDelete,
   isSaving,
   isDeleting,
+  isDirty = false,
 }: EmpresaDrawerProps) {
   const [nomeError, setNomeError] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -78,7 +81,9 @@ export function EmpresaDrawer({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <ConfirmClose open={open} onOpenChange={onOpenChange} isDirty={isDirty}>
+      {({ requestClose, handleOpenChange }) => (
+        <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-xl">
         <SheetHeader className="shrink-0 border-b px-4 py-4 sm:px-6">
           <SheetTitle>{editingEmpresa ? "Editar empresa" : "Nova empresa"}</SheetTitle>
@@ -165,7 +170,7 @@ export function EmpresaDrawer({
             </Button>
           ) : null}
           <div className="flex w-full gap-2">
-            <Button variant="outline" className="h-11 flex-1 rounded-lg" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" className="h-11 flex-1 rounded-lg" onClick={requestClose}>
               Cancelar
             </Button>
             <Button className="h-11 flex-1 rounded-lg" onClick={handleSave} disabled={isSaving || isDeleting}>
@@ -183,6 +188,8 @@ export function EmpresaDrawer({
         onConfirm={() => onDelete?.()}
         isDeleting={isDeleting}
       />
-    </Sheet>
+        </Sheet>
+      )}
+    </ConfirmClose>
   );
 }

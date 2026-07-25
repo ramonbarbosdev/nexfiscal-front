@@ -8,6 +8,7 @@ import { AppToast } from "@/components/layout/app-toast";
 import { Button } from "@/components/ui/button";
 import { useListControls } from "@/hooks/use-list-controls";
 import { useTheme } from "@/hooks/use-theme";
+import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { useToast } from "@/hooks/use-toast";
 import { ApiError } from "@/lib/api-client";
 
@@ -60,7 +61,8 @@ export function InvoicesPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [form, setForm] = useState<InvoiceForm | null>(null);
+  const { value: form, setValue: setForm, isDirty: drawerDirty, reset: resetForm } =
+    useDirtyForm<InvoiceForm>();
   const [previewId, setPreviewId] = useState<number | null>(null);
   const [importOpen, setImportOpen] = useState(false);
 
@@ -75,7 +77,7 @@ export function InvoicesPage() {
 
     try {
       setEditingId(existing?.id ?? null);
-      setForm(existing ? cloneFormFromInvoice(existing) : createBlankForm());
+      resetForm(existing ? cloneFormFromInvoice(existing) : createBlankForm());
       setDrawerOpen(true);
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Erro ao abrir formulário", "error");
@@ -279,6 +281,7 @@ export function InvoicesPage() {
             : undefined
         }
         isDeleting={isDeleting}
+        isDirty={drawerDirty}
         onToast={showToast}
       />
 

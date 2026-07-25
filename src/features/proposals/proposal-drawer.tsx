@@ -3,6 +3,7 @@ import { ImagePlus, Plus, Trash2, X } from "lucide-react";
 import { marked } from "marked";
 
 import { CurrencyInput } from "@/components/form/currency-input";
+import { ConfirmClose } from "@/components/form/confirm-close";
 import { DeleteConfirmDialog } from "@/components/form/delete-confirm-dialog";
 import { FormField } from "@/components/form/form-field";
 import { FormSection } from "@/components/form/form-section";
@@ -54,6 +55,7 @@ type ProposalDrawerProps = {
   onRemoveItem: (id: number) => void;
   onDelete?: () => void;
   isDeleting?: boolean;
+  isDirty?: boolean;
   onToast: (message: string, variant?: ToastVariant) => void;
 };
 
@@ -79,6 +81,7 @@ export function ProposalDrawer({
   onRemoveItem,
   onDelete,
   isDeleting,
+  isDirty = false,
   onToast,
 }: ProposalDrawerProps) {
   const { empresas } = useEmpresas();
@@ -243,7 +246,9 @@ export function ProposalDrawer({
   const saldo = Math.max(total - (form.entrada || 0), 0);
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <ConfirmClose open={open} onOpenChange={onOpenChange} isDirty={isDirty}>
+      {({ requestClose, handleOpenChange }) => (
+        <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-[640px]">
         <SheetHeader className="shrink-0 border-b px-4 py-4 sm:px-6">
           <SheetTitle>{editingProposal ? "Editar proposta" : "Nova proposta"}</SheetTitle>
@@ -599,7 +604,7 @@ export function ProposalDrawer({
             </Button>
           ) : null}
           <div className="flex w-full gap-2">
-            <Button variant="outline" className="h-11 flex-1 rounded-lg" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" className="h-11 flex-1 rounded-lg" onClick={requestClose}>
               Cancelar
             </Button>
             <Button className="h-11 flex-1 rounded-lg" onClick={handleSaveClick} disabled={isDeleting}>
@@ -617,6 +622,8 @@ export function ProposalDrawer({
         onConfirm={() => onDelete?.()}
         isDeleting={isDeleting}
       />
-    </Sheet>
+        </Sheet>
+      )}
+    </ConfirmClose>
   );
 }
