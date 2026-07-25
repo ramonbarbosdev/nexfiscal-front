@@ -1,0 +1,405 @@
+import { useEffect, useState } from "react";
+import { ImagePlus, Plus, X } from "lucide-react";
+import { marked } from "marked";
+
+import { CurrencyInput } from "@/components/form/currency-input";
+import { FormField } from "@/components/form/form-field";
+import { FormSection } from "@/components/form/form-section";
+import { FormTabs } from "@/components/form/form-tabs";
+import { MaskedInput, inputClassName } from "@/components/form/masked-input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
+
+import { calcItemsTotal, formatBRL } from "./utils";
+import type { Proposal, ProposalForm } from "./types";
+
+type ProposalDrawerProps = {
+  open: boolean;
+  editingProposal: Proposal | null;
+  form: ProposalForm | null;
+  onOpenChange: (open: boolean) => void;
+  onFormChange: (form: ProposalForm) => void;
+  onSave: () => void;
+  onAddItem: () => void;
+  onRemoveItem: (id: number) => void;
+};
+
+type TabId = "empresa" | "cliente" | "projeto" | "financeiro";
+
+const TABS = [
+  { id: "empresa" as const, label: "Empresa" },
+  { id: "cliente" as const, label: "Cliente" },
+  { id: "projeto" as const, label: "Projeto" },
+  { id: "financeiro" as const, label: "Valores" },
+];
+
+export function ProposalDrawer({
+  open,
+  editingProposal,
+  form,
+  onOpenChange,
+  onFormChange,
+  onSave,
+  onAddItem,
+  onRemoveItem,
+}: ProposalDrawerProps) {
+  const [tab, setTab] = useState<TabId>("empresa");
+  const [mdTab, setMdTab] = useState<"edit" | "preview">("edit");
+
+  useEffect(() => {
+    if (open) {
+      setTab("empresa");
+      setMdTab("edit");
+    }
+  }, [open, editingProposal?.id]);
+
+  if (!form) return null;
+
+  const update = (patch: Partial<ProposalForm>) => onFormChange({ ...form, ...patch });
+  const updateEmpresa = (key: keyof ProposalForm["empresa"], value: string) =>
+    onFormChange({ ...form, empresa: { ...form.empresa, [key]: value } });
+  const updateCliente = (key: keyof ProposalForm["cliente"], value: string) =>
+    onFormChange({ ...form, cliente: { ...form.cliente, [key]: value } });
+  const updateProjeto = (key: keyof ProposalForm["projeto"], value: string) =>
+    onFormChange({ ...form, projeto: { ...form.projeto, [key]: value } });
+
+  const updateItem = (id: number, field: "desc" | "qtd" | "valor", value: string | number) => {
+    onFormChange({
+      ...form,
+      itens: form.itens.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              [field]: field === "desc" ? value : Number(value) || 0,
+            }
+          : item,
+      ),
+    });
+  };
+
+  const handleLogoChange = (file: File | undefined) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => updateEmpresa("logo", String(ev.target?.result ?? ""));
+    reader.readAsDataURL(file);
+  };
+
+  const subtotal = calcItemsTotal(form.itens);
+  const total = Math.max(subtotal - (form.desconto || 0), 0);
+  const saldo = Math.max(total - (form.entrada || 0), 0);
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-[640px]">
+        <SheetHeader className="shrink-0 border-b px-4 py-4 sm:px-6">
+          <SheetTitle>{editingProposal ? "Editar proposta" : "Nova proposta"}</SheetTitle>
+        </SheetHeader>
+
+        <div className="shrink-0 px-4 pt-3 sm:px-6">
+          <FormTabs tabs={TABS} active={tab} onChange={setTab} />
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+          {tab === "empresa" && (
+            <FormSection title="Dados da empresa" description="Informações do prestador na proposta.">
+              <div className="flex items-start gap-4">
+                <FormField label="Logo">
+                  <label
+                    htmlFor="proposal-logo"
+                    className="flex h-16 w-16 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-border bg-muted"
+                  >
+                    {form.empresa.logo ? (
+                      <img src={form.empresa.logo} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <ImagePlus className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </label>
+                  <input
+                    id="proposal-logo"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleLogoChange(e.target.files?.[0])}
+                  />
+                </FormField>
+                <FormField label="Nome da empresa" required className="flex-1">
+                  <Input
+                    value={form.empresa.nome}
+                    onChange={(e) => updateEmpresa("nome", e.target.value)}
+                    className={inputClassName}
+                  />
+                </FormField>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <FormField label="WhatsApp">
+                  <MaskedInput
+                    mask="phone"
+                    value={form.empresa.whatsapp}
+                    onValueChange={(v) => updateEmpresa("whatsapp", v)}
+                  />
+                </FormField>
+                <FormField label="Instagram">
+                  <Input
+                    value={form.empresa.instagram}
+                    onChange={(e) => updateEmpresa("instagram", e.target.value)}
+                    className={inputClassName}
+                  />
+                </FormField>
+                <FormField label="E-mail" className="sm:col-span-2">
+                  <Input
+                    type="email"
+                    value={form.empresa.email}
+                    onChange={(e) => updateEmpresa("email", e.target.value)}
+                    className={inputClassName}
+                  />
+                </FormField>
+              </div>
+            </FormSection>
+          )}
+
+          {tab === "cliente" && (
+            <FormSection title="Dados do cliente">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <FormField label="Nome" required className="sm:col-span-2">
+                  <Input
+                    value={form.cliente.nome}
+                    onChange={(e) => updateCliente("nome", e.target.value)}
+                    className={inputClassName}
+                  />
+                </FormField>
+                <FormField label="Telefone">
+                  <MaskedInput
+                    mask="phone"
+                    value={form.cliente.telefone}
+                    onValueChange={(v) => updateCliente("telefone", v)}
+                  />
+                </FormField>
+              </div>
+            </FormSection>
+          )}
+
+          {tab === "projeto" && (
+            <div className="space-y-4">
+              <FormSection title="Detalhes do projeto">
+                <FormField label="Título">
+                  <Input
+                    value={form.projeto.titulo}
+                    onChange={(e) => updateProjeto("titulo", e.target.value)}
+                    className={inputClassName}
+                  />
+                </FormField>
+                <FormField label="Descrição" hint="Suporta Markdown">
+                  <div className="mb-2 flex gap-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={mdTab === "edit" ? "default" : "outline"}
+                      onClick={() => setMdTab("edit")}
+                    >
+                      Editar
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={mdTab === "preview" ? "default" : "outline"}
+                      onClick={() => setMdTab("preview")}
+                    >
+                      Visualizar
+                    </Button>
+                  </div>
+                  {mdTab === "edit" ? (
+                    <Textarea
+                      rows={4}
+                      value={form.projeto.descricao}
+                      onChange={(e) => updateProjeto("descricao", e.target.value)}
+                      className="resize-none rounded-lg font-mono-app text-sm"
+                    />
+                  ) : (
+                    <div className="min-h-16 rounded-lg border border-input bg-background px-3 py-2.5">
+                      {form.projeto.descricao.trim() ? (
+                        <div
+                          className="md-content"
+                          dangerouslySetInnerHTML={{
+                            __html: marked.parse(form.projeto.descricao),
+                          }}
+                        />
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Sem conteúdo.</p>
+                      )}
+                    </div>
+                  )}
+                </FormField>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <FormField label="Área">
+                    <Input
+                      value={form.projeto.area}
+                      onChange={(e) => updateProjeto("area", e.target.value)}
+                      className={inputClassName}
+                    />
+                  </FormField>
+                  <FormField label="Prazo">
+                    <Input
+                      value={form.projeto.prazo}
+                      onChange={(e) => updateProjeto("prazo", e.target.value)}
+                      className={inputClassName}
+                    />
+                  </FormField>
+                  <FormField label="Validade">
+                    <Input
+                      value={form.projeto.validade}
+                      onChange={(e) => updateProjeto("validade", e.target.value)}
+                      className={inputClassName}
+                    />
+                  </FormField>
+                </div>
+              </FormSection>
+
+              <FormSection
+                title="Itens"
+                action={
+                  <Button type="button" variant="outline" size="sm" onClick={onAddItem}>
+                    <Plus className="h-3.5 w-3.5" /> Adicionar
+                  </Button>
+                }
+              >
+                <div className="hidden grid-cols-[1fr_72px_120px_100px_32px] gap-2 px-1 text-[11px] font-medium text-muted-foreground sm:grid">
+                  <span>Descrição</span>
+                  <span className="text-center">Qtd</span>
+                  <span className="text-right">Valor unit.</span>
+                  <span className="text-right">Total</span>
+                  <span />
+                </div>
+                <div className="space-y-3">
+                  {form.itens.map((item) => (
+                    <div
+                      key={item.id}
+                      className="grid grid-cols-1 gap-2 rounded-lg border border-border p-3 sm:grid-cols-[1fr_72px_120px_100px_32px] sm:items-center sm:border-0 sm:p-0"
+                    >
+                      <FormField label="Descrição" className="sm:hidden">
+                        <Input
+                          value={item.desc}
+                          onChange={(e) => updateItem(item.id, "desc", e.target.value)}
+                          className={inputClassName}
+                        />
+                      </FormField>
+                      <Input
+                        value={item.desc}
+                        onChange={(e) => updateItem(item.id, "desc", e.target.value)}
+                        className={`hidden sm:block ${inputClassName}`}
+                      />
+                      <FormField label="Qtd" className="sm:hidden">
+                        <Input
+                          type="number"
+                          min={0}
+                          value={item.qtd}
+                          onChange={(e) => updateItem(item.id, "qtd", e.target.value)}
+                          className={`${inputClassName} text-center`}
+                        />
+                      </FormField>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={item.qtd}
+                        onChange={(e) => updateItem(item.id, "qtd", e.target.value)}
+                        className={`hidden sm:block ${inputClassName} text-center`}
+                      />
+                      <FormField label="Valor" className="sm:hidden">
+                        <CurrencyInput
+                          value={item.valor}
+                          onValueChange={(v) => updateItem(item.id, "valor", v)}
+                        />
+                      </FormField>
+                      <CurrencyInput
+                        value={item.valor}
+                        onValueChange={(v) => updateItem(item.id, "valor", v)}
+                        className="hidden sm:block"
+                      />
+                      <p className="text-right font-mono-app text-sm tabular-nums">
+                        {formatBRL(item.qtd * item.valor)}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => onRemoveItem(item.id)}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </FormSection>
+            </div>
+          )}
+
+          {tab === "financeiro" && (
+            <div className="space-y-4">
+              <FormSection title="Resumo financeiro">
+                <div className="space-y-3 font-mono-app text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="tabular-nums">{formatBRL(subtotal)}</span>
+                  </div>
+                  <FormField label="Desconto">
+                    <CurrencyInput
+                      value={form.desconto}
+                      onValueChange={(v) => update({ desconto: v })}
+                    />
+                  </FormField>
+                  <div className="flex justify-between border-t border-dashed border-border pt-2 font-semibold">
+                    <span>Total</span>
+                    <span className="tabular-nums">{formatBRL(total)}</span>
+                  </div>
+                  <FormField label="Entrada">
+                    <CurrencyInput
+                      value={form.entrada}
+                      onValueChange={(v) => update({ entrada: v })}
+                    />
+                  </FormField>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Saldo</span>
+                    <span className="tabular-nums">{formatBRL(saldo)}</span>
+                  </div>
+                </div>
+              </FormSection>
+
+              <FormSection title="Pagamento e observações">
+                <FormField label="Forma de pagamento">
+                  <Input
+                    value={form.formaPagamento}
+                    onChange={(e) => update({ formaPagamento: e.target.value })}
+                    className={inputClassName}
+                  />
+                </FormField>
+                <FormField label="Observações">
+                  <Textarea
+                    rows={3}
+                    value={form.observacoes}
+                    onChange={(e) => update({ observacoes: e.target.value })}
+                    className="resize-none rounded-lg"
+                  />
+                </FormField>
+              </FormSection>
+            </div>
+          )}
+        </div>
+
+        <SheetFooter className="shrink-0 border-t px-4 py-3 sm:px-6 sm:py-4">
+          <Button variant="outline" className="h-11 flex-1 rounded-lg" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button className="h-11 flex-1 rounded-lg" onClick={onSave}>
+            Salvar proposta
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
