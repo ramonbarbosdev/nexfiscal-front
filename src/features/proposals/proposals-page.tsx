@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 
 import { ListToolbar } from "@/components/list/list-toolbar";
-import { AppHeader } from "@/components/layout/app-header";
+import { AppShell } from "@/components/layout/app-shell";
 import { AppToast } from "@/components/layout/app-toast";
 import { Button } from "@/components/ui/button";
 import { useListControls } from "@/hooks/use-list-controls";
@@ -24,7 +24,7 @@ import { useProposals } from "./use-proposals";
 
 export function ProposalsPage() {
   const { isDark, toggle: toggleTheme } = useTheme();
-  const { message, show: showToast } = useToast();
+  const { message, variant, show: showToast } = useToast();
   const {
     proposals,
     changeStatus,
@@ -67,11 +67,6 @@ export function ProposalsPage() {
 
   const handleSave = () => {
     if (!form) return;
-    if (!form.empresa.nome.trim() || !form.cliente.nome.trim()) {
-      showToast("Preencha empresa e cliente");
-      return;
-    }
-
     const saved = saveProposal(form, editingId);
     setDrawerOpen(false);
     openPreview(saved.id);
@@ -116,13 +111,23 @@ export function ProposalsPage() {
 
 
   return (
-    <div className="nexfiscal-app min-h-screen overflow-x-hidden bg-[#EEEEF1] text-foreground transition-colors duration-300 dark:bg-black">
-      <AppHeader isDark={isDark} onToggleTheme={toggleTheme} />
+    <AppShell
+      isDark={isDark}
+      onToggleTheme={toggleTheme}
+      mobileAction={
+        <button
+          type="button"
+          onClick={() => openDrawer(null)}
+          className="flex h-12 w-12 items-center justify-center border border-accent bg-accent text-accent-foreground shadow-lg transition hover:opacity-90 active:scale-[.98]"
+          aria-label="Nova proposta"
+        >
+          <Plus className="h-5 w-5" />
+        </button>
+      }
+    >
+      <StatsGrid proposals={proposals} />
 
-      <main className="mx-auto max-w-6xl px-3 py-5 pb-28 sm:px-4 sm:py-8 sm:pb-8 md:px-8">
-        <StatsGrid proposals={proposals} />
-
-        <ListToolbar
+      <ListToolbar
           title="Propostas"
           description="Gerencie suas propostas comerciais."
           search={list.search}
@@ -140,7 +145,7 @@ export function ProposalsPage() {
           hasActiveFilters={list.hasActiveFilters}
           onClearFilters={list.clearFilters}
           action={
-            <Button className="h-10 shrink-0 rounded-lg px-4" onClick={() => openDrawer(null)}>
+            <Button className="h-10 shrink-0 px-5 font-semibold" onClick={() => openDrawer(null)}>
               Nova proposta
             </Button>
           }
@@ -158,7 +163,6 @@ export function ProposalsPage() {
           onStatusChange={handleStatusChange}
           hasFilters={list.hasActiveFilters || proposals.length > 0}
         />
-      </main>
 
       <ProposalDrawer
         open={drawerOpen}
@@ -169,6 +173,7 @@ export function ProposalsPage() {
         onSave={handleSave}
         onAddItem={handleAddItem}
         onRemoveItem={handleRemoveItem}
+        onToast={showToast}
       />
 
       <PreviewModal
@@ -180,17 +185,7 @@ export function ProposalsPage() {
         onToast={showToast}
       />
 
-      <AppToast message={message} />
-
-      <button
-        type="button"
-        onClick={() => openDrawer(null)}
-        className="fixed right-4 bottom-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition hover:opacity-90 active:scale-[.98] sm:hidden"
-        style={{ marginBottom: "env(safe-area-inset-bottom)" }}
-        aria-label="Nova proposta"
-      >
-        <Plus className="h-6 w-6" />
-      </button>
-    </div>
+      <AppToast message={message} variant={variant} />
+    </AppShell>
   );
 }

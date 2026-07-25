@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Plus, Upload } from "lucide-react";
 
 import { ListToolbar } from "@/components/list/list-toolbar";
-import { AppHeader } from "@/components/layout/app-header";
+import { AppShell } from "@/components/layout/app-shell";
 import { AppToast } from "@/components/layout/app-toast";
 import { Button } from "@/components/ui/button";
 import { useListControls } from "@/hooks/use-list-controls";
@@ -23,11 +23,10 @@ import { PreviewModal } from "./preview-modal";
 import { StatsGrid } from "./stats-grid";
 import type { Invoice, InvoiceForm } from "./types";
 import { useInvoices } from "./use-invoices";
-import { validateInvoiceForm } from "./utils";
 
 export function InvoicesPage() {
   const { isDark, toggle: toggleTheme } = useTheme();
-  const { message, show: showToast } = useToast();
+  const { message, variant, show: showToast } = useToast();
   const {
     invoices,
     changeStatus,
@@ -72,11 +71,6 @@ export function InvoicesPage() {
 
   const persist = (emit: boolean) => {
     if (!form) return;
-    const error = validateInvoiceForm(form);
-    if (error) {
-      showToast(error);
-      return;
-    }
     const saved = saveInvoice(form, editingId, emit);
     setDrawerOpen(false);
     openPreview(saved.id);
@@ -133,13 +127,23 @@ export function InvoicesPage() {
   };
 
   return (
-    <div className="nexfiscal-app min-h-screen overflow-x-hidden bg-[#EEEEF1] text-foreground transition-colors duration-300 dark:bg-black">
-      <AppHeader isDark={isDark} onToggleTheme={toggleTheme} />
+    <AppShell
+      isDark={isDark}
+      onToggleTheme={toggleTheme}
+      mobileAction={
+        <button
+          type="button"
+          onClick={() => openDrawer(null)}
+          className="flex h-12 w-12 items-center justify-center border border-accent bg-accent text-accent-foreground shadow-lg transition hover:opacity-90 active:scale-[.98]"
+          aria-label="Nova NFS-e"
+        >
+          <Plus className="h-5 w-5" />
+        </button>
+      }
+    >
+      <StatsGrid invoices={invoices} />
 
-      <main className="mx-auto max-w-6xl px-3 py-5 pb-28 sm:px-4 sm:py-8 sm:pb-8 md:px-8">
-        <StatsGrid invoices={invoices} />
-
-        <ListToolbar
+      <ListToolbar
           title="Notas Fiscais de Serviço"
           description="Emissão e controle de NFS-e."
           search={list.search}
@@ -160,13 +164,13 @@ export function InvoicesPage() {
             <div className="flex shrink-0 gap-2">
               <Button
                 variant="outline"
-                className="h-10 rounded-lg px-3"
+                className="h-10 border-border px-3"
                 onClick={() => setImportOpen(true)}
               >
                 <Upload className="h-4 w-4" />
                 <span className="hidden sm:inline">Importar</span>
               </Button>
-              <Button className="h-10 rounded-lg px-4" onClick={() => openDrawer(null)}>
+              <Button className="h-10 px-5 font-semibold" onClick={() => openDrawer(null)}>
                 Nova NFS-e
               </Button>
             </div>
@@ -185,7 +189,6 @@ export function InvoicesPage() {
           onStatusChange={handleStatusChange}
           hasFilters={list.hasActiveFilters || invoices.length > 0}
         />
-      </main>
 
       <InvoiceDrawer
         open={drawerOpen}
@@ -195,6 +198,7 @@ export function InvoicesPage() {
         onFormChange={setForm}
         onSaveDraft={() => persist(false)}
         onEmit={() => persist(true)}
+        onToast={showToast}
       />
 
       <PreviewModal
@@ -215,17 +219,7 @@ export function InvoicesPage() {
         invoiceCount={invoices.length}
       />
 
-      <AppToast message={message} />
-
-      <button
-        type="button"
-        onClick={() => openDrawer(null)}
-        className="fixed right-4 bottom-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition hover:opacity-90 active:scale-[.98] sm:hidden"
-        style={{ marginBottom: "env(safe-area-inset-bottom)" }}
-        aria-label="Nova NFS-e"
-      >
-        <Plus className="h-6 w-6" />
-      </button>
-    </div>
+      <AppToast message={message} variant={variant} />
+    </AppShell>
   );
 }

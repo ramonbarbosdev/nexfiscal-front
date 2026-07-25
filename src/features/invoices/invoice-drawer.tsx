@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AddressFields } from "@/components/form/address-fields";
 import { CurrencyInput } from "@/components/form/currency-input";
@@ -24,7 +24,23 @@ import {
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import {
+  firstTabWithErrors,
+  formatValidationToast,
+  getFieldError,
+  listErrorMessages,
+  tabsWithErrors,
+  zodFieldErrors,
+  type FieldErrors,
+} from "@/lib/zod-helpers";
+import type { ToastVariant } from "@/hooks/use-toast";
 
+import {
+  getInvoiceWarnings,
+  invoiceDraftSchema,
+  invoiceEmitSchema,
+  invoicePathToTab,
+} from "./schema";
 import type { Invoice, InvoiceForm } from "./types";
 import { LC116_SERVICES } from "./types";
 import { calcInvoiceTotals, formatBRL } from "./utils";
@@ -37,6 +53,7 @@ type InvoiceDrawerProps = {
   onFormChange: (form: InvoiceForm) => void;
   onSaveDraft: () => void;
   onEmit: () => void;
+  onToast: (message: string, variant?: ToastVariant) => void;
 };
 
 type TabId = "prestador" | "tomador" | "servico";
@@ -55,26 +72,106 @@ export function InvoiceDrawer({
   onFormChange,
   onSaveDraft,
   onEmit,
+  onToast,
 }: InvoiceDrawerProps) {
   const [tab, setTab] = useState<TabId>("prestador");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (open) setTab("prestador");
+    if (open) {
+      setTab("prestador");
+      setFieldErrors({});
+    }
   }, [open, editingInvoice?.id]);
+
+  const invalidTabs = useMemo(
+    () => tabsWithErrors(fieldErrors, invoicePathToTab),
+    [fieldErrors],
+  );
+
+  const clearFieldError = (path: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[path]) return prev;
+      const next = { ...prev };
+      delete next[path];
+      return next;
+    });
+  };
+
+  const validate = (mode: "draft" | "emit") => {
+    const schema = mode === "emit" ? invoiceEmitSchema : invoiceDraftSchema;
+    const warningList = getInvoiceWarnings(form as never);
+    const result = schema.safeParse(form);
+
+    if (!result.success) {
+      const nextErrors = zodFieldErrors(result.error);
+      setFieldErrors(nextErrors);
+      onToast(formatValidationToast(listErrorMessages(nextErrors), "error"), "error");
+      const nextTab = firstTabWithErrors(
+        nextErrors,
+        TABS.map((item) => item.id),
+        invoicePathToTab,
+      );
+      if (nextTab) setTab(nextTab);
+      scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      return false;
+    }
+
+    setFieldErrors({});
+    if (warningList.length > 0) {
+      onToast(formatValidationToast(warningList, "warning"), "warning");
+    }
+    return true;
+  };
+
+  const handleSaveDraftClick = () => {
+    if (validate("draft")) onSaveDraft();
+  };
+
+  const handleEmitClick = () => {
+    if (validate("emit")) onEmit();
+  };
 
   if (!form) return null;
 
   const totals = calcInvoiceTotals(form.servico);
   const isEmitted = editingInvoice?.status === "emitida";
 
-  const updatePrestador = (key: keyof InvoiceForm["prestador"], value: string) =>
+  const updatePrestador = (key: keyof InvoiceForm["prestador"], value: string) => {
+    clearFieldError(`prestador.${key}`);
     onFormChange({ ...form, prestador: { ...form.prestador, [key]: value } });
+  };
 
-  const updateTomador = (key: keyof InvoiceForm["tomador"], value: string) =>
+  const updateTomador = (key: keyof InvoiceForm["tomador"], value: string) => {
+    clearFieldError(`tomador.${key}`);
     onFormChange({ ...form, tomador: { ...form.tomador, [key]: value } });
+  };
 
-  const updateServico = (key: keyof InvoiceForm["servico"], value: string | number | boolean) =>
+  const updateServico = (key: keyof InvoiceForm["servico"], value: string | number | boolean) => {
+    clearFieldError(`servico.${key}`);
     onFormChange({ ...form, servico: { ...form.servico, [key]: value } });
+  };
+
+  const prestadorAddressErrors = {
+    cep: getFieldError(fieldErrors, "prestador.endereco.cep"),
+    logradouro: getFieldError(fieldErrors, "prestador.endereco.logradouro"),
+    numero: getFieldError(fieldErrors, "prestador.endereco.numero"),
+    complemento: getFieldError(fieldErrors, "prestador.endereco.complemento"),
+    bairro: getFieldError(fieldErrors, "prestador.endereco.bairro"),
+    cidade: getFieldError(fieldErrors, "prestador.endereco.cidade"),
+    uf: getFieldError(fieldErrors, "prestador.endereco.uf"),
+  };
+
+  const tomadorAddressErrors = {
+    cep: getFieldError(fieldErrors, "tomador.endereco.cep"),
+    logradouro: getFieldError(fieldErrors, "tomador.endereco.logradouro"),
+    numero: getFieldError(fieldErrors, "tomador.endereco.numero"),
+    complemento: getFieldError(fieldErrors, "tomador.endereco.complemento"),
+    bairro: getFieldError(fieldErrors, "tomador.endereco.bairro"),
+    cidade: getFieldError(fieldErrors, "tomador.endereco.cidade"),
+    uf: getFieldError(fieldErrors, "tomador.endereco.uf"),
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -86,14 +183,14 @@ export function InvoiceDrawer({
         </SheetHeader>
 
         <div className="shrink-0 px-4 pt-3 sm:px-6">
-          <FormTabs tabs={TABS} active={tab} onChange={setTab} />
+          <FormTabs tabs={TABS} active={tab} onChange={setTab} invalidTabs={invalidTabs} />
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           {tab === "prestador" && (
             <FormSection title="Prestador de serviço" description="Dados da sua empresa.">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField label="Razão social" required className="sm:col-span-2">
+                <FormField label="Razão social" required className="sm:col-span-2" error={getFieldError(fieldErrors, "prestador.razaoSocial")}>
                   <Input
                     value={form.prestador.razaoSocial}
                     onChange={(e) => updatePrestador("razaoSocial", e.target.value)}
@@ -107,21 +204,21 @@ export function InvoiceDrawer({
                     className={inputClassName}
                   />
                 </FormField>
-                <FormField label="CNPJ" required>
+                <FormField label="CNPJ" required error={getFieldError(fieldErrors, "prestador.cnpj")}>
                   <MaskedInput
                     mask="cnpj"
                     value={form.prestador.cnpj}
                     onValueChange={(v) => updatePrestador("cnpj", v)}
                   />
                 </FormField>
-                <FormField label="Inscrição municipal" required>
+                <FormField label="Inscrição municipal" required error={getFieldError(fieldErrors, "prestador.inscricaoMunicipal")}>
                   <Input
                     value={form.prestador.inscricaoMunicipal}
                     onChange={(e) => updatePrestador("inscricaoMunicipal", e.target.value)}
                     className={inputClassName}
                   />
                 </FormField>
-                <FormField label="E-mail">
+                <FormField label="E-mail" error={getFieldError(fieldErrors, "prestador.email")}>
                   <Input
                     type="email"
                     value={form.prestador.email}
@@ -140,9 +237,14 @@ export function InvoiceDrawer({
               <AddressFields
                 idPrefix="prestador"
                 value={form.prestador.endereco}
-                onChange={(endereco) =>
-                  onFormChange({ ...form, prestador: { ...form.prestador, endereco } })
-                }
+                required
+                errors={prestadorAddressErrors}
+                onChange={(endereco) => {
+                  Object.keys(endereco).forEach((key) =>
+                    clearFieldError(`prestador.endereco.${key}`),
+                  );
+                  onFormChange({ ...form, prestador: { ...form.prestador, endereco } });
+                }}
               />
             </FormSection>
           )}
@@ -173,6 +275,7 @@ export function InvoiceDrawer({
                   label={form.tomador.tipo === "pj" ? "Razão social" : "Nome completo"}
                   required
                   className="sm:col-span-2"
+                  error={getFieldError(fieldErrors, "tomador.nome")}
                 >
                   <Input
                     value={form.tomador.nome}
@@ -180,7 +283,11 @@ export function InvoiceDrawer({
                     className={inputClassName}
                   />
                 </FormField>
-                <FormField label={form.tomador.tipo === "pj" ? "CNPJ" : "CPF"} required>
+                <FormField
+                  label={form.tomador.tipo === "pj" ? "CNPJ" : "CPF"}
+                  required
+                  error={getFieldError(fieldErrors, "tomador.cpfCnpj")}
+                >
                   <MaskedInput
                     mask={form.tomador.tipo === "pj" ? "cnpj" : "cpf"}
                     value={form.tomador.cpfCnpj}
@@ -196,7 +303,7 @@ export function InvoiceDrawer({
                     />
                   </FormField>
                 ) : null}
-                <FormField label="E-mail">
+                <FormField label="E-mail" error={getFieldError(fieldErrors, "tomador.email")}>
                   <Input
                     type="email"
                     value={form.tomador.email}
@@ -215,9 +322,14 @@ export function InvoiceDrawer({
               <AddressFields
                 idPrefix="tomador"
                 value={form.tomador.endereco}
-                onChange={(endereco) =>
-                  onFormChange({ ...form, tomador: { ...form.tomador, endereco } })
-                }
+                required
+                errors={tomadorAddressErrors}
+                onChange={(endereco) => {
+                  Object.keys(endereco).forEach((key) =>
+                    clearFieldError(`tomador.endereco.${key}`),
+                  );
+                  onFormChange({ ...form, tomador: { ...form.tomador, endereco } });
+                }}
               />
             </FormSection>
           )}
@@ -225,7 +337,7 @@ export function InvoiceDrawer({
           {tab === "servico" && (
             <div className="space-y-4">
               <FormSection title="Serviço prestado">
-                <FormField label="Código LC 116" required>
+                <FormField label="Código LC 116" required error={getFieldError(fieldErrors, "servico.codigoLc116")}>
                   <Select
                     value={form.servico.codigoLc116}
                     onValueChange={(v) => updateServico("codigoLc116", v)}
@@ -242,7 +354,7 @@ export function InvoiceDrawer({
                     </SelectContent>
                   </Select>
                 </FormField>
-                <FormField label="Descrição resumida" required>
+                <FormField label="Descrição resumida" required error={getFieldError(fieldErrors, "servico.descricao")}>
                   <Input
                     value={form.servico.descricao}
                     onChange={(e) => updateServico("descricao", e.target.value)}
@@ -261,13 +373,13 @@ export function InvoiceDrawer({
 
               <FormSection title="Valores e tributos">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <FormField label="Valor do serviço" required>
+                  <FormField label="Valor do serviço" required error={getFieldError(fieldErrors, "servico.valorServico")}>
                     <CurrencyInput
                       value={form.servico.valorServico}
                       onValueChange={(v) => updateServico("valorServico", v)}
                     />
                   </FormField>
-                  <FormField label="Alíquota ISS (%)">
+                  <FormField label="Alíquota ISS (%)" error={getFieldError(fieldErrors, "servico.aliquotaIss")}>
                     <Input
                       type="number"
                       min={0}
@@ -335,11 +447,11 @@ export function InvoiceDrawer({
             Cancelar
           </Button>
           {!isEmitted && (
-            <Button variant="secondary" className="h-11 flex-1 rounded-lg" onClick={onSaveDraft}>
+            <Button variant="secondary" className="h-11 flex-1 rounded-lg" onClick={handleSaveDraftClick}>
               Salvar rascunho
             </Button>
           )}
-          <Button className="h-11 flex-1 rounded-lg" onClick={onEmit} disabled={isEmitted}>
+          <Button className="h-11 flex-1 rounded-lg" onClick={handleEmitClick} disabled={isEmitted}>
             {isEmitted ? "Já emitida" : "Emitir NFS-e"}
           </Button>
         </SheetFooter>

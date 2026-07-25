@@ -28,15 +28,14 @@ export function getInitials(name: string) {
 export const STATUS_META = {
   aprovada: {
     label: "Aprovada",
-    className:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400",
+    className: "nf-status nf-status--success",
   },
   pendente: {
     label: "Pendente",
-    className: "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400",
+    className: "nf-status nf-status--pending",
   },
   cancelada: {
     label: "Cancelada",
-    className: "bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
+    className: "nf-status nf-status--muted",
   },
 } as const;

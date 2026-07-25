@@ -1,4 +1,4 @@
-import { ChevronRight, Receipt } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 import { ListPagination } from "@/components/list/list-pagination";
 import {
@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 import type { Invoice, InvoiceStatus } from "./types";
 import {
@@ -31,6 +32,12 @@ type InvoicesListProps = {
   hasFilters: boolean;
 };
 
+const ROW_STATUS_CLASS: Record<InvoiceStatus, string> = {
+  rascunho: "nf-ledger-row--rascunho",
+  emitida: "nf-ledger-row--emitida",
+  cancelada: "nf-ledger-row--cancelada",
+};
+
 export function InvoicesList({
   invoices,
   totalItems,
@@ -45,13 +52,10 @@ export function InvoicesList({
 }: InvoicesListProps) {
   if (totalItems === 0 && !hasFilters) {
     return (
-      <div className="py-20 text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
-          <Receipt className="h-6 w-6 text-muted-foreground" />
-        </div>
-        <p className="font-medium">Nenhuma nota fiscal cadastrada</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Use o botão Nova NFS-e para criar a primeira nota.
+      <div className="nf-empty">
+        <p className="font-display text-lg font-semibold">Nenhuma NFS-e ainda</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Emita ou importe sua primeira nota fiscal de serviço.
         </p>
       </div>
     );
@@ -59,18 +63,22 @@ export function InvoicesList({
 
   if (invoices.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-card py-16 text-center">
-        <p className="font-medium">Nenhum resultado encontrado</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Ajuste os filtros ou a busca para ver outras notas.
-        </p>
+      <div className="nf-empty">
+        <p className="font-medium">Nenhum resultado</p>
+        <p className="mt-1 text-sm text-muted-foreground">Ajuste os filtros ou a busca.</p>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="grid gap-3">
+    <div className="nf-panel">
+      <div className="nf-panel-header hidden text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase sm:grid sm:grid-cols-[1fr_auto_auto] sm:gap-4">
+        <span>Nota</span>
+        <span className="text-right">Valor líquido</span>
+        <span className="w-[7.5rem]">Status</span>
+      </div>
+
+      <div className="divide-y divide-border">
         {invoices.map((invoice) => {
           const { valorLiquido } = calcInvoiceTotals(invoice.servico);
           const meta = STATUS_META[invoice.status];
@@ -84,29 +92,21 @@ export function InvoicesList({
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") onOpen(invoice.id);
               }}
-              className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-card p-3 transition hover:border-muted-foreground/30 sm:gap-4 sm:p-4"
+              className={cn("nf-ledger-row rounded-none border-0 border-l-[3px]", ROW_STATUS_CLASS[invoice.status])}
             >
-              <div className="font-mono-app flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold sm:h-11 sm:w-11">
-                NFS
-              </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <p className="truncate text-sm font-semibold">
                     {invoice.servico.descricao || "Sem descrição"}
                   </p>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium sm:text-[11px] ${meta.className}`}
-                  >
-                    {meta.label}
-                  </span>
+                  <span className={meta.className}>{meta.label}</span>
                 </div>
-                <p className="mt-0.5 truncate text-[11px] text-muted-foreground sm:text-xs">
-                  {invoice.tomador.nome} · Nº {invoice.numero} · {formatDate(invoice.dataEmissao)}
-                </p>
-                <p className="font-mono-app mt-1 text-sm font-semibold tabular-nums sm:hidden">
-                  {formatBRL(valorLiquido)}
+                <p className="mt-1 truncate text-xs text-muted-foreground">
+                  {invoice.tomador.nome || "Tomador não informado"} · Nº {invoice.numero} ·{" "}
+                  {formatDate(invoice.dataEmissao)}
                 </p>
               </div>
+
               <div className="hidden shrink-0 text-right sm:block">
                 <p className="font-mono-app text-sm font-semibold tabular-nums">
                   {formatBRL(valorLiquido)}
@@ -115,12 +115,17 @@ export function InvoicesList({
                   {formatCpfCnpj(invoice.tomador.cpfCnpj)}
                 </p>
               </div>
-              <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+
+              <div
+                className="hidden w-[7.5rem] sm:block"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
                 <Select
                   value={invoice.status}
                   onValueChange={(value) => onStatusChange(invoice.id, value as InvoiceStatus)}
                 >
-                  <SelectTrigger className="hidden h-8 w-[120px] text-xs sm:flex">
+                  <SelectTrigger className="h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -130,20 +135,27 @@ export function InvoicesList({
                   </SelectContent>
                 </Select>
               </div>
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+
+              <p className="font-mono-app text-sm font-semibold tabular-nums sm:hidden">
+                {formatBRL(valorLiquido)}
+              </p>
+
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/40" />
             </div>
           );
         })}
       </div>
 
-      <ListPagination
-        page={page}
-        totalPages={totalPages}
-        totalItems={totalItems}
-        showingFrom={showingFrom}
-        showingTo={showingTo}
-        onPageChange={onPageChange}
-      />
+      <div className="px-4 pb-3">
+        <ListPagination
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          showingFrom={showingFrom}
+          showingTo={showingTo}
+          onPageChange={onPageChange}
+        />
+      </div>
     </div>
   );
 }

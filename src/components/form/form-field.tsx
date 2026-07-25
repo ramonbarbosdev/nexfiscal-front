@@ -23,14 +23,16 @@ export function FormField({
   children,
 }: FormFieldProps) {
   return (
-    <div className={cn("space-y-1.5", className)}>
+    <div className={cn("space-y-1.5", error && "nf-field--error", className)}>
       <Label htmlFor={htmlFor} className="text-xs font-medium text-foreground">
         {label}
         {required ? <span className="text-destructive"> *</span> : null}
       </Label>
       {children}
       {error ? (
-        <p className="text-[11px] text-destructive">{error}</p>
+        <p className="nf-field-error" role="alert">
+          {error}
+        </p>
       ) : hint ? (
         <p className="text-[11px] text-muted-foreground">{hint}</p>
       ) : null}

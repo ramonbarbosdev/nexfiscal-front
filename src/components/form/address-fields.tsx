@@ -17,15 +17,23 @@ type AddressFieldsProps = {
   value: AddressValue;
   onChange: (value: AddressValue) => void;
   idPrefix?: string;
+  errors?: Partial<Record<keyof AddressValue, string | undefined>>;
+  required?: boolean;
 };
 
-export function AddressFields({ value, onChange, idPrefix = "addr" }: AddressFieldsProps) {
+export function AddressFields({
+  value,
+  onChange,
+  idPrefix = "addr",
+  errors = {},
+  required = false,
+}: AddressFieldsProps) {
   const set = (key: keyof AddressValue, fieldValue: string) =>
     onChange({ ...value, [key]: fieldValue });
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-6">
-      <FormField label="CEP" htmlFor={`${idPrefix}-cep`} className="sm:col-span-2">
+      <FormField label="CEP" htmlFor={`${idPrefix}-cep`} className="sm:col-span-2" required={required} error={errors.cep}>
         <MaskedInput
           id={`${idPrefix}-cep`}
           mask="cep"
@@ -34,7 +42,7 @@ export function AddressFields({ value, onChange, idPrefix = "addr" }: AddressFie
           onValueChange={(v) => set("cep", v)}
         />
       </FormField>
-      <FormField label="Logradouro" htmlFor={`${idPrefix}-log`} className="sm:col-span-4">
+      <FormField label="Logradouro" htmlFor={`${idPrefix}-log`} className="sm:col-span-4" required={required} error={errors.logradouro}>
         <Input
           id={`${idPrefix}-log`}
           placeholder="Rua, avenida..."
@@ -43,7 +51,7 @@ export function AddressFields({ value, onChange, idPrefix = "addr" }: AddressFie
           className="h-10 rounded-lg"
         />
       </FormField>
-      <FormField label="Número" htmlFor={`${idPrefix}-num`} className="sm:col-span-2">
+      <FormField label="Número" htmlFor={`${idPrefix}-num`} className="sm:col-span-2" required={required} error={errors.numero}>
         <Input
           id={`${idPrefix}-num`}
           placeholder="Nº"
@@ -52,7 +60,7 @@ export function AddressFields({ value, onChange, idPrefix = "addr" }: AddressFie
           className="h-10 rounded-lg"
         />
       </FormField>
-      <FormField label="Complemento" htmlFor={`${idPrefix}-comp`} className="sm:col-span-2">
+      <FormField label="Complemento" htmlFor={`${idPrefix}-comp`} className="sm:col-span-2" error={errors.complemento}>
         <Input
           id={`${idPrefix}-comp`}
           placeholder="Apto, sala..."
@@ -61,7 +69,7 @@ export function AddressFields({ value, onChange, idPrefix = "addr" }: AddressFie
           className="h-10 rounded-lg"
         />
       </FormField>
-      <FormField label="Bairro" htmlFor={`${idPrefix}-bairro`} className="sm:col-span-2">
+      <FormField label="Bairro" htmlFor={`${idPrefix}-bairro`} className="sm:col-span-2" required={required} error={errors.bairro}>
         <Input
           id={`${idPrefix}-bairro`}
           value={value.bairro}
@@ -69,7 +77,7 @@ export function AddressFields({ value, onChange, idPrefix = "addr" }: AddressFie
           className="h-10 rounded-lg"
         />
       </FormField>
-      <FormField label="Cidade" htmlFor={`${idPrefix}-cidade`} className="sm:col-span-4">
+      <FormField label="Cidade" htmlFor={`${idPrefix}-cidade`} className="sm:col-span-4" required={required} error={errors.cidade}>
         <Input
           id={`${idPrefix}-cidade`}
           value={value.cidade}
@@ -77,7 +85,7 @@ export function AddressFields({ value, onChange, idPrefix = "addr" }: AddressFie
           className="h-10 rounded-lg"
         />
       </FormField>
-      <FormField label="UF" htmlFor={`${idPrefix}-uf`} className="sm:col-span-2">
+      <FormField label="UF" htmlFor={`${idPrefix}-uf`} className="sm:col-span-2" required={required} error={errors.uf}>
         <MaskedInput
           id={`${idPrefix}-uf`}
           mask="uf"

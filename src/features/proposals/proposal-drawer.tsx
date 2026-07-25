@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ImagePlus, Plus, X } from "lucide-react";
 import { marked } from "marked";
 
@@ -17,7 +17,22 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  firstTabWithErrors,
+  formatValidationToast,
+  getFieldError,
+  listErrorMessages,
+  tabsWithErrors,
+  zodFieldErrors,
+  type FieldErrors,
+} from "@/lib/zod-helpers";
+import type { ToastVariant } from "@/hooks/use-toast";
 
+import {
+  getProposalWarnings,
+  proposalFormSchema,
+  proposalPathToTab,
+} from "./schema";
 import { calcItemsTotal, formatBRL } from "./utils";
 import type { Proposal, ProposalForm } from "./types";
 
@@ -30,6 +45,7 @@ type ProposalDrawerProps = {
   onSave: () => void;
   onAddItem: () => void;
   onRemoveItem: (id: number) => void;
+  onToast: (message: string, variant?: ToastVariant) => void;
 };
 
 type TabId = "empresa" | "cliente" | "projeto" | "financeiro";
@@ -50,28 +66,79 @@ export function ProposalDrawer({
   onSave,
   onAddItem,
   onRemoveItem,
+  onToast,
 }: ProposalDrawerProps) {
   const [tab, setTab] = useState<TabId>("empresa");
   const [mdTab, setMdTab] = useState<"edit" | "preview">("edit");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) {
       setTab("empresa");
       setMdTab("edit");
+      setFieldErrors({});
     }
   }, [open, editingProposal?.id]);
+
+  const invalidTabs = useMemo(
+    () => tabsWithErrors(fieldErrors, proposalPathToTab),
+    [fieldErrors],
+  );
+
+  const clearFieldError = (path: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[path]) return prev;
+      const next = { ...prev };
+      delete next[path];
+      return next;
+    });
+  };
+
+  const handleSaveClick = () => {
+    const warningList = getProposalWarnings(form!);
+    const result = proposalFormSchema.safeParse(form);
+
+    if (!result.success) {
+      const nextErrors = zodFieldErrors(result.error);
+      setFieldErrors(nextErrors);
+      onToast(formatValidationToast(listErrorMessages(nextErrors), "error"), "error");
+      const nextTab = firstTabWithErrors(
+        nextErrors,
+        TABS.map((item) => item.id),
+        proposalPathToTab,
+      );
+      if (nextTab) setTab(nextTab);
+      scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    setFieldErrors({});
+    if (warningList.length > 0) {
+      onToast(formatValidationToast(warningList, "warning"), "warning");
+    }
+    onSave();
+  };
 
   if (!form) return null;
 
   const update = (patch: Partial<ProposalForm>) => onFormChange({ ...form, ...patch });
-  const updateEmpresa = (key: keyof ProposalForm["empresa"], value: string) =>
+  const updateEmpresa = (key: keyof ProposalForm["empresa"], value: string) => {
+    clearFieldError(`empresa.${key}`);
     onFormChange({ ...form, empresa: { ...form.empresa, [key]: value } });
-  const updateCliente = (key: keyof ProposalForm["cliente"], value: string) =>
+  };
+  const updateCliente = (key: keyof ProposalForm["cliente"], value: string) => {
+    clearFieldError(`cliente.${key}`);
     onFormChange({ ...form, cliente: { ...form.cliente, [key]: value } });
-  const updateProjeto = (key: keyof ProposalForm["projeto"], value: string) =>
+  };
+  const updateProjeto = (key: keyof ProposalForm["projeto"], value: string) => {
+    clearFieldError(`projeto.${key}`);
     onFormChange({ ...form, projeto: { ...form.projeto, [key]: value } });
+  };
 
   const updateItem = (id: number, field: "desc" | "qtd" | "valor", value: string | number) => {
+    const index = form.itens.findIndex((item) => item.id === id);
+    if (index >= 0) clearFieldError(`itens.${index}.${field}`);
     onFormChange({
       ...form,
       itens: form.itens.map((item) =>
@@ -104,10 +171,10 @@ export function ProposalDrawer({
         </SheetHeader>
 
         <div className="shrink-0 px-4 pt-3 sm:px-6">
-          <FormTabs tabs={TABS} active={tab} onChange={setTab} />
+          <FormTabs tabs={TABS} active={tab} onChange={setTab} invalidTabs={invalidTabs} />
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           {tab === "empresa" && (
             <FormSection title="Dados da empresa" description="Informações do prestador na proposta.">
               <div className="flex items-start gap-4">
@@ -130,7 +197,7 @@ export function ProposalDrawer({
                     onChange={(e) => handleLogoChange(e.target.files?.[0])}
                   />
                 </FormField>
-                <FormField label="Nome da empresa" required className="flex-1">
+                <FormField label="Nome da empresa" required className="flex-1" error={getFieldError(fieldErrors, "empresa.nome")}>
                   <Input
                     value={form.empresa.nome}
                     onChange={(e) => updateEmpresa("nome", e.target.value)}
@@ -153,7 +220,7 @@ export function ProposalDrawer({
                     className={inputClassName}
                   />
                 </FormField>
-                <FormField label="E-mail" className="sm:col-span-2">
+                <FormField label="E-mail" className="sm:col-span-2" error={getFieldError(fieldErrors, "empresa.email")}>
                   <Input
                     type="email"
                     value={form.empresa.email}
@@ -168,7 +235,7 @@ export function ProposalDrawer({
           {tab === "cliente" && (
             <FormSection title="Dados do cliente">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField label="Nome" required className="sm:col-span-2">
+                <FormField label="Nome" required className="sm:col-span-2" error={getFieldError(fieldErrors, "cliente.nome")}>
                   <Input
                     value={form.cliente.nome}
                     onChange={(e) => updateCliente("nome", e.target.value)}
@@ -278,12 +345,16 @@ export function ProposalDrawer({
                   <span />
                 </div>
                 <div className="space-y-3">
-                  {form.itens.map((item) => (
+                  {form.itens.map((item, index) => (
                     <div
                       key={item.id}
                       className="grid grid-cols-1 gap-2 rounded-lg border border-border p-3 sm:grid-cols-[1fr_72px_120px_100px_32px] sm:items-center sm:border-0 sm:p-0"
                     >
-                      <FormField label="Descrição" className="sm:hidden">
+                      <FormField
+                        label="Descrição"
+                        className="sm:hidden"
+                        error={getFieldError(fieldErrors, `itens.${index}.desc`)}
+                      >
                         <Input
                           value={item.desc}
                           onChange={(e) => updateItem(item.id, "desc", e.target.value)}
@@ -295,7 +366,11 @@ export function ProposalDrawer({
                         onChange={(e) => updateItem(item.id, "desc", e.target.value)}
                         className={`hidden sm:block ${inputClassName}`}
                       />
-                      <FormField label="Qtd" className="sm:hidden">
+                      <FormField
+                        label="Qtd"
+                        className="sm:hidden"
+                        error={getFieldError(fieldErrors, `itens.${index}.qtd`)}
+                      >
                         <Input
                           type="number"
                           min={0}
@@ -311,7 +386,11 @@ export function ProposalDrawer({
                         onChange={(e) => updateItem(item.id, "qtd", e.target.value)}
                         className={`hidden sm:block ${inputClassName} text-center`}
                       />
-                      <FormField label="Valor" className="sm:hidden">
+                      <FormField
+                        label="Valor"
+                        className="sm:hidden"
+                        error={getFieldError(fieldErrors, `itens.${index}.valor`)}
+                      >
                         <CurrencyInput
                           value={item.valor}
                           onValueChange={(v) => updateItem(item.id, "valor", v)}
@@ -347,20 +426,26 @@ export function ProposalDrawer({
                     <span className="text-muted-foreground">Subtotal</span>
                     <span className="tabular-nums">{formatBRL(subtotal)}</span>
                   </div>
-                  <FormField label="Desconto">
+                  <FormField label="Desconto" error={getFieldError(fieldErrors, "desconto")}>
                     <CurrencyInput
                       value={form.desconto}
-                      onValueChange={(v) => update({ desconto: v })}
+                      onValueChange={(v) => {
+                        clearFieldError("desconto");
+                        update({ desconto: v });
+                      }}
                     />
                   </FormField>
                   <div className="flex justify-between border-t border-dashed border-border pt-2 font-semibold">
                     <span>Total</span>
                     <span className="tabular-nums">{formatBRL(total)}</span>
                   </div>
-                  <FormField label="Entrada">
+                  <FormField label="Entrada" error={getFieldError(fieldErrors, "entrada")}>
                     <CurrencyInput
                       value={form.entrada}
-                      onValueChange={(v) => update({ entrada: v })}
+                      onValueChange={(v) => {
+                        clearFieldError("entrada");
+                        update({ entrada: v });
+                      }}
                     />
                   </FormField>
                   <div className="flex justify-between text-muted-foreground">
@@ -395,7 +480,7 @@ export function ProposalDrawer({
           <Button variant="outline" className="h-11 flex-1 rounded-lg" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button className="h-11 flex-1 rounded-lg" onClick={onSave}>
+          <Button className="h-11 flex-1 rounded-lg" onClick={handleSaveClick}>
             Salvar proposta
           </Button>
         </SheetFooter>

@@ -53,17 +53,19 @@ export function ListToolbar({
   action,
 }: ListToolbarProps) {
   return (
-    <div className="mb-5 space-y-3">
-      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+    <div className="mb-5 space-y-4">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div className="min-w-0">
-          <h1 className="text-lg font-bold tracking-tight sm:text-xl">{title}</h1>
-          <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">{description}</p>
+          <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-[1.65rem]">
+            {title}
+          </h1>
+          <p className="mt-1 max-w-xl text-sm text-muted-foreground">{description}</p>
         </div>
         {action}
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-3 sm:p-4">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="nf-panel">
+        <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-4">
           <div className="relative sm:col-span-2 lg:col-span-1">
             <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -71,12 +73,12 @@ export function ListToolbar({
               placeholder="Buscar..."
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="h-10 rounded-lg pl-9"
+              className="h-10 border-border bg-background pl-9"
             />
           </div>
 
           <Select value={status} onValueChange={onStatusChange}>
-            <SelectTrigger className="h-10 rounded-lg">
+            <SelectTrigger className="h-10 border-border bg-background">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -89,7 +91,7 @@ export function ListToolbar({
           </Select>
 
           <Select value={sortBy} onValueChange={onSortByChange}>
-            <SelectTrigger className="h-10 rounded-lg">
+            <SelectTrigger className="h-10 border-border bg-background">
               <SelectValue placeholder="Ordenar por" />
             </SelectTrigger>
             <SelectContent>
@@ -101,8 +103,11 @@ export function ListToolbar({
             </SelectContent>
           </Select>
 
-          <Select value={sortDirection} onValueChange={(v) => onSortDirectionChange(v as SortDirection)}>
-            <SelectTrigger className="h-10 rounded-lg">
+          <Select
+            value={sortDirection}
+            onValueChange={(v) => onSortDirectionChange(v as SortDirection)}
+          >
+            <SelectTrigger className="h-10 border-border bg-background">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -112,11 +117,11 @@ export function ListToolbar({
           </Select>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Exibir</span>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2.5 sm:px-4">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Exibir</span>
             <Select value={String(pageSize)} onValueChange={(v) => onPageSizeChange(Number(v))}>
-              <SelectTrigger className="h-8 w-[72px] rounded-lg text-xs">
+              <SelectTrigger className="h-8 w-[4.5rem] text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -127,7 +132,7 @@ export function ListToolbar({
                 ))}
               </SelectContent>
             </Select>
-            <span className="text-xs text-muted-foreground">por página</span>
+            <span>por página</span>
           </div>
 
           {hasActiveFilters ? (

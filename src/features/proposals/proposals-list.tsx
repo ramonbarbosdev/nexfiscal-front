@@ -1,4 +1,4 @@
-import { ChevronRight, FileText } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 import { ListPagination } from "@/components/list/list-pagination";
 import {
@@ -8,8 +8,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
-import { calcItemsTotal, formatBRL, formatDate, getInitials, STATUS_META } from "./utils";
+import { calcItemsTotal, formatBRL, formatDate, STATUS_META } from "./utils";
 import type { Proposal, ProposalStatus } from "./types";
 
 type ProposalsListProps = {
@@ -23,6 +24,12 @@ type ProposalsListProps = {
   onOpen: (id: number) => void;
   onStatusChange: (id: number, status: ProposalStatus) => void;
   hasFilters: boolean;
+};
+
+const ROW_STATUS_CLASS: Record<ProposalStatus, string> = {
+  pendente: "nf-ledger-row--pendente",
+  aprovada: "nf-ledger-row--aprovada",
+  cancelada: "nf-ledger-row--cancelada",
 };
 
 export function ProposalsList({
@@ -39,13 +46,10 @@ export function ProposalsList({
 }: ProposalsListProps) {
   if (totalItems === 0 && !hasFilters) {
     return (
-      <div className="py-20 text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
-          <FileText className="h-6 w-6 text-muted-foreground" />
-        </div>
-        <p className="font-medium">Nenhuma proposta cadastrada</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Use o botão Nova para criar a primeira proposta.
+      <div className="nf-empty">
+        <p className="font-display text-lg font-semibold">Nenhuma proposta ainda</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Comece registrando sua primeira proposta comercial.
         </p>
       </div>
     );
@@ -53,18 +57,22 @@ export function ProposalsList({
 
   if (proposals.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-card py-16 text-center">
-        <p className="font-medium">Nenhum resultado encontrado</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Ajuste os filtros ou a busca para ver outras propostas.
-        </p>
+      <div className="nf-empty">
+        <p className="font-medium">Nenhum resultado</p>
+        <p className="mt-1 text-sm text-muted-foreground">Ajuste os filtros ou a busca.</p>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="grid gap-3">
+    <div className="nf-panel">
+      <div className="nf-panel-header hidden text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase sm:grid sm:grid-cols-[1fr_auto_auto] sm:gap-4">
+        <span>Proposta</span>
+        <span className="text-right">Valor</span>
+        <span className="w-[7.5rem]">Status</span>
+      </div>
+
+      <div className="divide-y divide-border">
         {proposals.map((proposal) => {
           const total = calcItemsTotal(proposal.itens) - (proposal.desconto || 0);
           const meta = STATUS_META[proposal.status];
@@ -78,38 +86,35 @@ export function ProposalsList({
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") onOpen(proposal.id);
               }}
-              className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-card p-3 transition hover:border-muted-foreground/30 sm:gap-4 sm:p-4"
+              className={cn("nf-ledger-row rounded-none border-0 border-l-[3px]", ROW_STATUS_CLASS[proposal.status])}
             >
-              <div className="font-mono-app flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-sm font-semibold sm:h-11 sm:w-11">
-                {proposal.cliente.nome ? getInitials(proposal.cliente.nome) : "?"}
-              </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <p className="truncate text-sm font-semibold">
                     {proposal.projeto.titulo || "Sem título"}
                   </p>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium sm:text-[11px] ${meta.className}`}
-                  >
-                    {meta.label}
-                  </span>
+                  <span className={meta.className}>{meta.label}</span>
                 </div>
-                <p className="mt-0.5 truncate text-[11px] text-muted-foreground sm:text-xs">
-                  {proposal.cliente.nome} · Nº {proposal.numero} · {formatDate(proposal.createdAt)}
-                </p>
-                <p className="font-mono-app mt-1 text-sm font-semibold tabular-nums sm:hidden">
-                  {formatBRL(total)}
+                <p className="mt-1 truncate text-xs text-muted-foreground">
+                  {proposal.cliente.nome || "Cliente não informado"} · Nº {proposal.numero} ·{" "}
+                  {formatDate(proposal.createdAt)}
                 </p>
               </div>
-              <div className="hidden shrink-0 text-right sm:block">
-                <p className="font-mono-app text-sm font-semibold tabular-nums">{formatBRL(total)}</p>
-              </div>
-              <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+
+              <p className="font-mono-app hidden shrink-0 text-sm font-semibold tabular-nums sm:block">
+                {formatBRL(total)}
+              </p>
+
+              <div
+                className="hidden w-[7.5rem] sm:block"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
                 <Select
                   value={proposal.status}
                   onValueChange={(value) => onStatusChange(proposal.id, value as ProposalStatus)}
                 >
-                  <SelectTrigger className="hidden h-8 w-[120px] text-xs sm:flex">
+                  <SelectTrigger className="h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -119,20 +124,27 @@ export function ProposalsList({
                   </SelectContent>
                 </Select>
               </div>
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+
+              <p className="font-mono-app text-sm font-semibold tabular-nums sm:hidden">
+                {formatBRL(total)}
+              </p>
+
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/40" />
             </div>
           );
         })}
       </div>
 
-      <ListPagination
-        page={page}
-        totalPages={totalPages}
-        totalItems={totalItems}
-        showingFrom={showingFrom}
-        showingTo={showingTo}
-        onPageChange={onPageChange}
-      />
+      <div className="px-4 pb-3">
+        <ListPagination
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          showingFrom={showingFrom}
+          showingTo={showingTo}
+          onPageChange={onPageChange}
+        />
+      </div>
     </div>
   );
 }
