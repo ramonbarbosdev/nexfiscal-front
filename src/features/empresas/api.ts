@@ -1,6 +1,10 @@
 import { apiRequest, type SpringPage } from "@/lib/api-client";
+import { blankAddress } from "@/lib/address";
+import type { PartyAddress } from "@/lib/address";
 
 import type { Empresa, EmpresaForm } from "./types";
+
+type ApiPartyAddress = PartyAddress;
 
 type ApiEmpresa = {
   id: number;
@@ -9,8 +13,22 @@ type ApiEmpresa = {
   whatsapp: string;
   instagram: string;
   email: string;
+  endereco: ApiPartyAddress | null;
   createdAt: string;
 };
+
+function mapAddress(dto: ApiPartyAddress | null | undefined): PartyAddress {
+  if (!dto) return blankAddress();
+  return {
+    logradouro: dto.logradouro ?? "",
+    numero: dto.numero ?? "",
+    complemento: dto.complemento ?? "",
+    bairro: dto.bairro ?? "",
+    cidade: dto.cidade ?? "",
+    uf: dto.uf ?? "",
+    cep: dto.cep ?? "",
+  };
+}
 
 function mapEmpresa(dto: ApiEmpresa): Empresa {
   return {
@@ -20,6 +38,7 @@ function mapEmpresa(dto: ApiEmpresa): Empresa {
     whatsapp: dto.whatsapp ?? "",
     instagram: dto.instagram ?? "",
     email: dto.email ?? "",
+    endereco: mapAddress(dto.endereco),
     createdAt: new Date(dto.createdAt),
   };
 }

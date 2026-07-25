@@ -1,3 +1,5 @@
+import type { PartyAddress } from "@/lib/address";
+
 export type Empresa = {
   id: number;
   logo: string;
@@ -5,6 +7,7 @@ export type Empresa = {
   whatsapp: string;
   instagram: string;
   email: string;
+  endereco: PartyAddress;
   createdAt: Date;
 };
 

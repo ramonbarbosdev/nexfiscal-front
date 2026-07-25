@@ -3,12 +3,15 @@ import { useCallback } from "react";
 
 import { useAuth } from "@/features/auth/auth-context";
 
+import { blankAddress } from "@/lib/address";
+
 import { clienteKeys, createCliente, deleteCliente, fetchClientes, updateCliente } from "./api";
 import type { Cliente, ClienteForm } from "./types";
 
 const blankForm = (): ClienteForm => ({
   nome: "",
   telefone: "",
+  endereco: blankAddress(),
 });
 
 export function useClientes() {
@@ -70,6 +73,7 @@ export function useClientes() {
     cloneFormFromCliente: (cliente: Cliente): ClienteForm => ({
       nome: cliente.nome,
       telefone: cliente.telefone,
+      endereco: { ...cliente.endereco },
     }),
     saveCliente,
     removeCliente,

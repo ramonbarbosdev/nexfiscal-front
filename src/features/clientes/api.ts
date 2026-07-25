@@ -1,19 +1,38 @@
 import { apiRequest, type SpringPage } from "@/lib/api-client";
+import { blankAddress } from "@/lib/address";
+import type { PartyAddress } from "@/lib/address";
 
 import type { Cliente, ClienteForm } from "./types";
+
+type ApiPartyAddress = PartyAddress;
 
 type ApiCliente = {
   id: number;
   nome: string;
   telefone: string;
+  endereco: ApiPartyAddress | null;
   createdAt: string;
 };
+
+function mapAddress(dto: ApiPartyAddress | null | undefined): PartyAddress {
+  if (!dto) return blankAddress();
+  return {
+    logradouro: dto.logradouro ?? "",
+    numero: dto.numero ?? "",
+    complemento: dto.complemento ?? "",
+    bairro: dto.bairro ?? "",
+    cidade: dto.cidade ?? "",
+    uf: dto.uf ?? "",
+    cep: dto.cep ?? "",
+  };
+}
 
 function mapCliente(dto: ApiCliente): Cliente {
   return {
     id: dto.id,
     nome: dto.nome,
     telefone: dto.telefone ?? "",
+    endereco: mapAddress(dto.endereco),
     createdAt: new Date(dto.createdAt),
   };
 }

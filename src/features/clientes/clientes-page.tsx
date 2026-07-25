@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useTheme } from "@/hooks/use-theme";
 import { useToast } from "@/hooks/use-toast";
 import { ApiError } from "@/lib/api-client";
+import { formatAddressLine } from "@/lib/address";
 
 import { ClienteDrawer } from "./cliente-drawer";
 import type { Cliente, ClienteForm } from "./types";
@@ -141,7 +142,9 @@ export function ClientesPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{cliente.nome}</p>
                     <p className="truncate text-sm text-muted-foreground">
-                      {cliente.telefone || "—"}
+                      {[cliente.telefone, formatAddressLine(cliente.endereco)]
+                        .filter(Boolean)
+                        .join(" · ") || "—"}
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-1">

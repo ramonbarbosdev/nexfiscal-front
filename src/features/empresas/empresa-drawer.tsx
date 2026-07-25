@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ImagePlus } from "lucide-react";
 
+import { AddressFields } from "@/components/form/address-fields";
 import { FormField } from "@/components/form/form-field";
 import { FormSection } from "@/components/form/form-section";
 import { MaskedInput, inputClassName } from "@/components/form/masked-input";
@@ -13,6 +14,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { useCepLookup } from "@/features/cep/use-cep-lookup";
+import { useToast } from "@/hooks/use-toast";
 
 import type { Empresa, EmpresaForm } from "./types";
 
@@ -36,6 +39,8 @@ export function EmpresaDrawer({
   isSaving,
 }: EmpresaDrawerProps) {
   const [nomeError, setNomeError] = useState("");
+  const { lookupCep } = useCepLookup();
+  const { show: showToast } = useToast();
 
   useEffect(() => {
     if (open) setNomeError("");
@@ -65,7 +70,7 @@ export function EmpresaDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
+      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-xl">
         <SheetHeader className="shrink-0 border-b px-4 py-4 sm:px-6">
           <SheetTitle>{editingEmpresa ? "Editar empresa" : "Nova empresa"}</SheetTitle>
         </SheetHeader>
@@ -124,6 +129,16 @@ export function EmpresaDrawer({
                 />
               </FormField>
             </div>
+          </FormSection>
+
+          <FormSection title="Endereço" description="Informe o CEP para preencher automaticamente.">
+            <AddressFields
+              idPrefix="empresa"
+              value={form.endereco}
+              onChange={(endereco) => onFormChange({ ...form, endereco })}
+              onLookupCep={lookupCep}
+              onCepError={(message) => showToast(message, "warning")}
+            />
           </FormSection>
         </div>
 

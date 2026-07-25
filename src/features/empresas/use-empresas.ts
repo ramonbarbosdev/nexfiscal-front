@@ -3,6 +3,8 @@ import { useCallback } from "react";
 
 import { useAuth } from "@/features/auth/auth-context";
 
+import { blankAddress } from "@/lib/address";
+
 import { createEmpresa, deleteEmpresa, empresaKeys, fetchEmpresas, updateEmpresa } from "./api";
 import type { Empresa, EmpresaForm } from "./types";
 
@@ -12,6 +14,7 @@ const blankForm = (): EmpresaForm => ({
   whatsapp: "",
   instagram: "",
   email: "",
+  endereco: blankAddress(),
 });
 
 export function useEmpresas() {
@@ -76,6 +79,7 @@ export function useEmpresas() {
       whatsapp: empresa.whatsapp,
       instagram: empresa.instagram,
       email: empresa.email,
+      endereco: { ...empresa.endereco },
     }),
     saveEmpresa,
     removeEmpresa,
