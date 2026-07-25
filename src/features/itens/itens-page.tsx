@@ -48,7 +48,7 @@ export function ItensPage() {
   const [tipoFilter, setTipoFilter] = useState<TipoFilter>("todos");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const { value: form, setValue: setForm, isDirty: drawerDirty, reset: resetForm } =
+  const { value: form, setValue: setForm, reset: resetForm } =
     useDirtyForm<ItemForm>();
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
@@ -242,7 +242,6 @@ export function ItensPage() {
         onDelete={editingId ? () => void handleDelete(editingId) : undefined}
         isSaving={isSaving}
         isDeleting={isDeleting}
-        isDirty={drawerDirty}
       />
 
       <DeleteConfirmDialog

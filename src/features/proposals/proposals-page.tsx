@@ -58,19 +58,17 @@ export function ProposalsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const { value: form, setValue: setForm, isDirty: formDirty, reset: resetForm } =
+  const { value: form, setValue: setForm, reset: resetForm } =
     useDirtyForm<ProposalForm>();
   const {
     value: saveMeta,
     setValue: setSaveMeta,
-    isDirty: metaDirty,
     reset: resetSaveMeta,
   } = useDirtyForm<ProposalSaveMeta>(defaultProposalSaveMeta());
   const [previewId, setPreviewId] = useState<number | null>(null);
 
   const previewProposal = previewId ? proposals.find((p) => p.id === previewId) ?? null : null;
   const editingProposal = editingId ? proposals.find((p) => p.id === editingId) ?? null : null;
-  const drawerDirty = formDirty || metaDirty;
 
   const openDrawer = (existing: Proposal | null) => {
     setEditingId(existing?.id ?? null);
@@ -236,7 +234,6 @@ export function ProposalsPage() {
         onRemoveItem={handleRemoveItem}
         onDelete={editingId ? () => void handleDelete(editingId) : undefined}
         isDeleting={isDeleting}
-        isDirty={drawerDirty}
         onToast={showToast}
       />
 

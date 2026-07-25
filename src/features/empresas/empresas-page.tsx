@@ -37,7 +37,7 @@ export function EmpresasPage() {
   const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const { value: form, setValue: setForm, isDirty: drawerDirty, reset: resetForm } =
+  const { value: form, setValue: setForm, reset: resetForm } =
     useDirtyForm<EmpresaForm>();
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
@@ -197,7 +197,6 @@ export function EmpresasPage() {
         onDelete={editingId ? () => void handleDelete(editingId) : undefined}
         isSaving={isSaving}
         isDeleting={isDeleting}
-        isDirty={drawerDirty}
       />
 
       <DeleteConfirmDialog

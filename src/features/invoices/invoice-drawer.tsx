@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
 
 import { AddressFields } from "@/components/form/address-fields";
-import { ConfirmClose } from "@/components/form/confirm-close";
 import { DeleteConfirmDialog } from "@/components/form/delete-confirm-dialog";
 import { CurrencyInput } from "@/components/form/currency-input";
 import { FormField } from "@/components/form/form-field";
@@ -58,7 +57,6 @@ type InvoiceDrawerProps = {
   onEmit: () => void;
   onDelete?: () => void;
   isDeleting?: boolean;
-  isDirty?: boolean;
   onToast: (message: string, variant?: ToastVariant) => void;
 };
 
@@ -80,7 +78,6 @@ export function InvoiceDrawer({
   onEmit,
   onDelete,
   isDeleting,
-  isDirty = false,
   onToast,
 }: InvoiceDrawerProps) {
   const [tab, setTab] = useState<TabId>("prestador");
@@ -185,9 +182,7 @@ export function InvoiceDrawer({
   };
 
   return (
-    <ConfirmClose open={open} onOpenChange={onOpenChange} isDirty={isDirty}>
-      {({ requestClose, handleOpenChange }) => (
-        <Sheet open={open} onOpenChange={handleOpenChange}>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-[640px]">
         <SheetHeader className="shrink-0 border-b px-4 py-4 sm:px-6">
           <SheetTitle>
@@ -469,7 +464,7 @@ export function InvoiceDrawer({
             </Button>
           ) : null}
           <div className="flex w-full gap-2">
-            <Button type="button" variant="outline" className="h-11 flex-1 rounded-lg" onClick={requestClose}>
+            <Button type="button" variant="outline" className="h-11 flex-1 rounded-lg" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
             {!isEmitted && (
@@ -503,8 +498,6 @@ export function InvoiceDrawer({
         onConfirm={() => onDelete?.()}
         isDeleting={isDeleting}
       />
-        </Sheet>
-      )}
-    </ConfirmClose>
+    </Sheet>
   );
 }

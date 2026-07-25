@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
 
-import { ConfirmClose } from "@/components/form/confirm-close";
 import { CurrencyInput } from "@/components/form/currency-input";
 import { DeleteConfirmDialog } from "@/components/form/delete-confirm-dialog";
 import { FormField } from "@/components/form/form-field";
@@ -39,7 +38,6 @@ type ItemDrawerProps = {
   onDelete?: () => void;
   isSaving?: boolean;
   isDeleting?: boolean;
-  isDirty?: boolean;
 };
 
 export function ItemDrawer({
@@ -52,7 +50,6 @@ export function ItemDrawer({
   onDelete,
   isSaving,
   isDeleting,
-  isDirty = false,
 }: ItemDrawerProps) {
   const [nomeError, setNomeError] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -93,10 +90,8 @@ export function ItemDrawer({
   };
 
   return (
-    <ConfirmClose open={open} onOpenChange={onOpenChange} isDirty={isDirty}>
-      {({ requestClose, handleOpenChange }) => (
-        <Sheet open={open} onOpenChange={handleOpenChange}>
-          <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-xl">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-xl">
             <SheetHeader className="shrink-0 border-b px-4 py-4 sm:px-6">
               <SheetTitle>{editingItem ? "Editar item" : "Novo item"}</SheetTitle>
             </SheetHeader>
@@ -238,7 +233,7 @@ export function ItemDrawer({
                 </Button>
               ) : null}
               <div className="flex w-full gap-2">
-                <Button type="button" variant="outline" className="h-11 flex-1 rounded-lg" onClick={requestClose}>
+                <Button type="button" variant="outline" className="h-11 flex-1 rounded-lg" onClick={() => onOpenChange(false)}>
                   Cancelar
                 </Button>
                 <Button type="button" className="h-11 flex-1 rounded-lg" onClick={handleSave} disabled={isSaving || isDeleting}>
@@ -256,8 +251,6 @@ export function ItemDrawer({
             onConfirm={() => onDelete?.()}
             isDeleting={isDeleting}
           />
-        </Sheet>
-      )}
-    </ConfirmClose>
+    </Sheet>
   );
 }

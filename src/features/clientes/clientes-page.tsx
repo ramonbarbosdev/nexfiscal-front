@@ -37,7 +37,7 @@ export function ClientesPage() {
   const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const { value: form, setValue: setForm, isDirty: drawerDirty, reset: resetForm } =
+  const { value: form, setValue: setForm, reset: resetForm } =
     useDirtyForm<ClienteForm>();
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
@@ -190,7 +190,6 @@ export function ClientesPage() {
         onDelete={editingId ? () => void handleDelete(editingId) : undefined}
         isSaving={isSaving}
         isDeleting={isDeleting}
-        isDirty={drawerDirty}
       />
 
       <DeleteConfirmDialog

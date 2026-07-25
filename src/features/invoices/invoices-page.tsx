@@ -61,7 +61,7 @@ export function InvoicesPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const { value: form, setValue: setForm, isDirty: drawerDirty, reset: resetForm } =
+  const { value: form, setValue: setForm, reset: resetForm } =
     useDirtyForm<InvoiceForm>();
   const [previewId, setPreviewId] = useState<number | null>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -281,7 +281,6 @@ export function InvoicesPage() {
             : undefined
         }
         isDeleting={isDeleting}
-        isDirty={drawerDirty}
         onToast={showToast}
       />
 
