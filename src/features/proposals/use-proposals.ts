@@ -5,6 +5,7 @@ import { useAuth } from "@/features/auth/auth-context";
 
 import {
   createProposal,
+  deleteProposal,
   duplicateProposalApi,
   fetchProposals,
   patchProposalStatus,
@@ -105,6 +106,18 @@ export function useProposals() {
     [invalidate],
   );
 
+  const deleteMutation = useMutation({
+    mutationFn: deleteProposal,
+    onSuccess: invalidate,
+  });
+
+  const removeProposal = useCallback(
+    async (id: number) => {
+      await deleteMutation.mutateAsync(id);
+    },
+    [deleteMutation],
+  );
+
   const nextItemId = useCallback(() => itemIdCounter.current++, []);
 
   return {
@@ -118,6 +131,8 @@ export function useProposals() {
     cloneFormFromProposal,
     saveProposal,
     duplicateProposal,
+    removeProposal,
+    isDeleting: deleteMutation.isPending,
     nextItemId,
   };
 }

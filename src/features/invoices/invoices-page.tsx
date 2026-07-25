@@ -41,6 +41,8 @@ export function InvoicesPage() {
     saveInvoice,
     cancelInvoice,
     duplicateInvoice,
+    removeInvoice,
+    isDeleting,
     importInvoices,
     exportInvoices,
   } = useInvoices();
@@ -132,6 +134,27 @@ export function InvoicesPage() {
       showToast(error instanceof ApiError ? error.message : "Erro ao cancelar", "error");
     }
   };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await removeInvoice(id);
+      if (editingId === id) {
+        setDrawerOpen(false);
+        setEditingId(null);
+        setForm(null);
+      }
+      if (previewId === id) {
+        setPreviewOpen(false);
+        setPreviewId(null);
+      }
+      showToast("NFS-e excluída");
+    } catch (error) {
+      showToast(error instanceof ApiError ? error.message : "Erro ao excluir NFS-e", "error");
+    }
+  };
+
+  const canDeleteInvoice = (invoice: Invoice | null) =>
+    invoice !== null && invoice.status !== "emitida";
 
   const handleExport = async () => {
     try {
@@ -250,6 +273,12 @@ export function InvoicesPage() {
         onFormChange={setForm}
         onSaveDraft={() => persist(false)}
         onEmit={() => persist(true)}
+        onDelete={
+          editingId && canDeleteInvoice(editingInvoice)
+            ? () => void handleDelete(editingId)
+            : undefined
+        }
+        isDeleting={isDeleting}
         onToast={showToast}
       />
 
@@ -260,6 +289,10 @@ export function InvoicesPage() {
         onDuplicate={handleDuplicate}
         onEdit={handleEditFromPreview}
         onCancel={handleCancel}
+        onDelete={() => {
+          if (previewId !== null) void handleDelete(previewId);
+        }}
+        isDeleting={isDeleting}
         onToast={showToast}
       />
 

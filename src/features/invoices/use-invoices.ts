@@ -6,6 +6,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import {
   cancelInvoiceApi,
   createInvoice,
+  deleteInvoice,
   duplicateInvoiceApi,
   emitInvoice,
   exportInvoicesApi,
@@ -152,6 +153,18 @@ export function useInvoices() {
     [invalidate],
   );
 
+  const deleteMutation = useMutation({
+    mutationFn: deleteInvoice,
+    onSuccess: invalidate,
+  });
+
+  const removeInvoice = useCallback(
+    async (id: number) => {
+      await deleteMutation.mutateAsync(id);
+    },
+    [deleteMutation],
+  );
+
   const importInvoices = useCallback(
     async (items: InvoiceImportItem[]) => {
       if (items.length === 0) {
@@ -185,6 +198,8 @@ export function useInvoices() {
     saveInvoice,
     cancelInvoice,
     duplicateInvoice,
+    removeInvoice,
+    isDeleting: deleteMutation.isPending,
     importInvoices,
     exportInvoices,
   };

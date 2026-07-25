@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 
+import { DeleteConfirmDialog } from "@/components/form/delete-confirm-dialog";
 import { ApiQueryState } from "@/components/layout/api-query-state";
 import { AppShell } from "@/components/layout/app-shell";
 import { AppToast } from "@/components/layout/app-toast";
@@ -29,12 +30,14 @@ export function EmpresasPage() {
     saveEmpresa,
     removeEmpresa,
     isSaving,
+    isDeleting,
   } = useEmpresas();
 
   const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<EmpresaForm | null>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -67,14 +70,21 @@ export function EmpresasPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm("Excluir esta empresa?")) return;
     try {
       await removeEmpresa(id);
+      if (editingId === id) {
+        setDrawerOpen(false);
+        setEditingId(null);
+        setForm(null);
+      }
+      setDeleteId(null);
       showToast("Empresa excluída");
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Erro ao excluir empresa", "error");
     }
   };
+
+  const empresaToDelete = deleteId ? empresas.find((e) => e.id === deleteId) ?? null : null;
 
   return (
     <AppShell
@@ -155,14 +165,15 @@ export function EmpresasPage() {
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => openDrawer(empresa)}>
+                    <Button variant="ghost" size="icon" onClick={() => openDrawer(empresa)} aria-label="Editar empresa">
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="text-destructive hover:text-destructive"
-                      onClick={() => void handleDelete(empresa.id)}
+                      onClick={() => setDeleteId(empresa.id)}
+                      aria-label="Excluir empresa"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -181,7 +192,22 @@ export function EmpresasPage() {
         onOpenChange={setDrawerOpen}
         onFormChange={setForm}
         onSave={() => void handleSave()}
+        onDelete={editingId ? () => void handleDelete(editingId) : undefined}
         isSaving={isSaving}
+        isDeleting={isDeleting}
+      />
+
+      <DeleteConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteId(null);
+        }}
+        title="Excluir empresa?"
+        description={`A empresa "${empresaToDelete?.nome ?? ""}" será removida permanentemente do cadastro.`}
+        onConfirm={() => {
+          if (deleteId !== null) void handleDelete(deleteId);
+        }}
+        isDeleting={isDeleting}
       />
 
       <AppToast message={message} variant={variant} />

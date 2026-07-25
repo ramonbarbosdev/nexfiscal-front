@@ -39,6 +39,8 @@ export function ProposalsPage() {
     cloneFormFromProposal,
     saveProposal,
     duplicateProposal,
+    removeProposal,
+    isDeleting,
     nextItemId,
   } = useProposals();
 
@@ -130,6 +132,24 @@ export function ProposalsPage() {
     openDrawer(previewProposal);
   };
 
+  const handleDelete = async (id: number) => {
+    try {
+      await removeProposal(id);
+      if (editingId === id) {
+        setDrawerOpen(false);
+        setEditingId(null);
+        setForm(null);
+      }
+      if (previewId === id) {
+        setPreviewOpen(false);
+        setPreviewId(null);
+      }
+      showToast("Proposta excluída");
+    } catch (error) {
+      showToast(error instanceof ApiError ? error.message : "Erro ao excluir proposta", "error");
+    }
+  };
+
 
   return (
     <AppShell
@@ -206,6 +226,8 @@ export function ProposalsPage() {
         onSave={handleSave}
         onAddItem={handleAddItem}
         onRemoveItem={handleRemoveItem}
+        onDelete={editingId ? () => void handleDelete(editingId) : undefined}
+        isDeleting={isDeleting}
         onToast={showToast}
       />
 
@@ -215,6 +237,10 @@ export function ProposalsPage() {
         onOpenChange={setPreviewOpen}
         onDuplicate={handleDuplicate}
         onEdit={handleEditFromPreview}
+        onDelete={() => {
+          if (previewId !== null) void handleDelete(previewId);
+        }}
+        isDeleting={isDeleting}
         onToast={showToast}
       />
 

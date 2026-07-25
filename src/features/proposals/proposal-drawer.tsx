@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ImagePlus, Plus, X } from "lucide-react";
+import { ImagePlus, Plus, Trash2, X } from "lucide-react";
 import { marked } from "marked";
 
 import { CurrencyInput } from "@/components/form/currency-input";
+import { DeleteConfirmDialog } from "@/components/form/delete-confirm-dialog";
 import { FormField } from "@/components/form/form-field";
 import { FormSection } from "@/components/form/form-section";
 import { FormTabs } from "@/components/form/form-tabs";
@@ -51,6 +52,8 @@ type ProposalDrawerProps = {
   onSave: (meta: ProposalSaveMeta) => void;
   onAddItem: () => void;
   onRemoveItem: (id: number) => void;
+  onDelete?: () => void;
+  isDeleting?: boolean;
   onToast: (message: string, variant?: ToastVariant) => void;
 };
 
@@ -74,6 +77,8 @@ export function ProposalDrawer({
   onSave,
   onAddItem,
   onRemoveItem,
+  onDelete,
+  isDeleting,
   onToast,
 }: ProposalDrawerProps) {
   const { empresas } = useEmpresas();
@@ -81,6 +86,7 @@ export function ProposalDrawer({
   const [tab, setTab] = useState<TabId>("empresa");
   const [mdTab, setMdTab] = useState<"edit" | "preview">("edit");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -88,6 +94,7 @@ export function ProposalDrawer({
       setTab("empresa");
       setMdTab("edit");
       setFieldErrors({});
+      setDeleteOpen(false);
     }
   }, [open, editingProposal?.id]);
 
@@ -578,15 +585,38 @@ export function ProposalDrawer({
           )}
         </div>
 
-        <SheetFooter className="shrink-0 border-t px-4 py-3 sm:px-6 sm:py-4">
-          <Button variant="outline" className="h-11 flex-1 rounded-lg" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button className="h-11 flex-1 rounded-lg" onClick={handleSaveClick}>
-            Salvar proposta
-          </Button>
+        <SheetFooter className="shrink-0 flex-col gap-2 border-t px-4 py-3 sm:px-6 sm:py-4">
+          {editingProposal && onDelete ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 w-full rounded-lg border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => setDeleteOpen(true)}
+              disabled={isDeleting}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Excluir proposta
+            </Button>
+          ) : null}
+          <div className="flex w-full gap-2">
+            <Button variant="outline" className="h-11 flex-1 rounded-lg" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button className="h-11 flex-1 rounded-lg" onClick={handleSaveClick} disabled={isDeleting}>
+              Salvar proposta
+            </Button>
+          </div>
         </SheetFooter>
       </SheetContent>
+
+      <DeleteConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Excluir proposta?"
+        description={`A proposta Nº ${editingProposal?.numero ?? ""} será removida permanentemente.`}
+        onConfirm={() => onDelete?.()}
+        isDeleting={isDeleting}
+      />
     </Sheet>
   );
 }

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 
+import { DeleteConfirmDialog } from "@/components/form/delete-confirm-dialog";
 import { ApiQueryState } from "@/components/layout/api-query-state";
 import { AppShell } from "@/components/layout/app-shell";
 import { AppToast } from "@/components/layout/app-toast";
@@ -29,12 +30,14 @@ export function ClientesPage() {
     saveCliente,
     removeCliente,
     isSaving,
+    isDeleting,
   } = useClientes();
 
   const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<ClienteForm | null>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -64,14 +67,21 @@ export function ClientesPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm("Excluir este cliente?")) return;
     try {
       await removeCliente(id);
+      if (editingId === id) {
+        setDrawerOpen(false);
+        setEditingId(null);
+        setForm(null);
+      }
+      setDeleteId(null);
       showToast("Cliente excluído");
     } catch (err) {
       showToast(err instanceof ApiError ? err.message : "Erro ao excluir cliente", "error");
     }
   };
+
+  const clienteToDelete = deleteId ? clientes.find((c) => c.id === deleteId) ?? null : null;
 
   return (
     <AppShell
@@ -148,14 +158,15 @@ export function ClientesPage() {
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => openDrawer(cliente)}>
+                    <Button variant="ghost" size="icon" onClick={() => openDrawer(cliente)} aria-label="Editar cliente">
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="text-destructive hover:text-destructive"
-                      onClick={() => void handleDelete(cliente.id)}
+                      onClick={() => setDeleteId(cliente.id)}
+                      aria-label="Excluir cliente"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -174,7 +185,22 @@ export function ClientesPage() {
         onOpenChange={setDrawerOpen}
         onFormChange={setForm}
         onSave={() => void handleSave()}
+        onDelete={editingId ? () => void handleDelete(editingId) : undefined}
         isSaving={isSaving}
+        isDeleting={isDeleting}
+      />
+
+      <DeleteConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteId(null);
+        }}
+        title="Excluir cliente?"
+        description={`O cliente "${clienteToDelete?.nome ?? ""}" será removido permanentemente do cadastro.`}
+        onConfirm={() => {
+          if (deleteId !== null) void handleDelete(deleteId);
+        }}
+        isDeleting={isDeleting}
       />
 
       <AppToast message={message} variant={variant} />

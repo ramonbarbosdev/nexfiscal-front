@@ -1,7 +1,8 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import html2canvas from "html2canvas";
-import { Ban, Copy, FileDown, Image, Link, Pencil } from "lucide-react";
+import { Ban, Copy, FileDown, Image, Link, Pencil, Trash2 } from "lucide-react";
 
+import { DeleteConfirmDialog } from "@/components/form/delete-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
@@ -16,6 +17,8 @@ type PreviewModalProps = {
   onDuplicate: () => void;
   onEdit: () => void;
   onCancel: () => void;
+  onDelete: () => void;
+  isDeleting?: boolean;
   onToast: (message: string) => void;
 };
 
@@ -26,11 +29,16 @@ export function PreviewModal({
   onDuplicate,
   onEdit,
   onCancel,
+  onDelete,
+  isDeleting,
   onToast,
 }: PreviewModalProps) {
   const docRef = useRef<HTMLDivElement>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   if (!invoice) return null;
+
+  const canDelete = invoice.status !== "emitida";
 
   const { valorLiquido } = calcInvoiceTotals(invoice.servico);
 
@@ -72,6 +80,17 @@ export function PreviewModal({
         </div>
 
         <div className="shrink-0 border-t p-3 sm:p-4">
+          {canDelete ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="mb-2 h-10 w-full rounded-xl border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => setDeleteOpen(true)}
+              disabled={isDeleting}
+            >
+              <Trash2 className="h-4 w-4" /> Excluir NFS-e
+            </Button>
+          ) : null}
           <div className="mb-2 grid grid-cols-2 gap-2">
             <Button variant="outline" className="h-11 rounded-xl" onClick={() => window.print()}>
               <FileDown className="h-4 w-4" /> PDF
@@ -114,6 +133,18 @@ export function PreviewModal({
           </div>
         </div>
       </DialogContent>
+
+      <DeleteConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Excluir NFS-e?"
+        description={`A nota fiscal Nº ${invoice.numero} será removida permanentemente.`}
+        onConfirm={() => {
+          setDeleteOpen(false);
+          onDelete();
+        }}
+        isDeleting={isDeleting}
+      />
     </Dialog>
   );
 }

@@ -1,7 +1,8 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import html2canvas from "html2canvas";
-import { Copy, FileDown, Image, Link, MessageCircle, Pencil } from "lucide-react";
+import { Copy, FileDown, Image, Link, MessageCircle, Pencil, Trash2 } from "lucide-react";
 
+import { DeleteConfirmDialog } from "@/components/form/delete-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
@@ -15,6 +16,8 @@ type PreviewModalProps = {
   onOpenChange: (open: boolean) => void;
   onDuplicate: () => void;
   onEdit: () => void;
+  onDelete: () => void;
+  isDeleting?: boolean;
   onToast: (message: string) => void;
 };
 
@@ -24,9 +27,12 @@ export function PreviewModal({
   onOpenChange,
   onDuplicate,
   onEdit,
+  onDelete,
+  isDeleting,
   onToast,
 }: PreviewModalProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   if (!proposal) return null;
 
@@ -73,6 +79,15 @@ export function PreviewModal({
         </div>
 
         <div className="shrink-0 border-t p-3 sm:p-4">
+          <Button
+            type="button"
+            variant="outline"
+            className="mb-2 h-10 w-full rounded-xl border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => setDeleteOpen(true)}
+            disabled={isDeleting}
+          >
+            <Trash2 className="h-4 w-4" /> Excluir proposta
+          </Button>
           <div className="mb-2 grid grid-cols-2 gap-2">
             <Button
               className="h-11 rounded-xl bg-[#25D366] text-white hover:bg-[#25D366]/90"
@@ -100,6 +115,18 @@ export function PreviewModal({
           </div>
         </div>
       </DialogContent>
+
+      <DeleteConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Excluir proposta?"
+        description={`A proposta Nº ${proposal.numero} será removida permanentemente.`}
+        onConfirm={() => {
+          setDeleteOpen(false);
+          onDelete();
+        }}
+        isDeleting={isDeleting}
+      />
     </Dialog>
   );
 }

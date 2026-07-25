@@ -101,6 +101,10 @@ export async function duplicateInvoiceApi(id: number): Promise<Invoice> {
   return mapInvoice(dto);
 }
 
+export async function deleteInvoice(id: number): Promise<void> {
+  await apiRequest<void>(`/notas-fiscais/${id}`, { method: "DELETE" });
+}
+
 export async function importInvoicesApi(payload: unknown): Promise<Invoice[]> {
   const list = await apiRequest<ApiInvoice[]>("/notas-fiscais/importar", {
     method: "POST",

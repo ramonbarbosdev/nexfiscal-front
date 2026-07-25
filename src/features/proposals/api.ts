@@ -117,3 +117,7 @@ export async function duplicateProposalApi(id: number): Promise<Proposal> {
   });
   return mapProposal(dto);
 }
+
+export async function deleteProposal(id: number): Promise<void> {
+  await apiRequest<void>(`/propostas/${id}`, { method: "DELETE" });
+}
