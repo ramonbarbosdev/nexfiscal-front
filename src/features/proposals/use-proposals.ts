@@ -11,7 +11,7 @@ import {
   proposalKeys,
   updateProposal,
 } from "./api";
-import type { Proposal, ProposalForm, ProposalStatus } from "./types";
+import type { Proposal, ProposalForm, ProposalSaveMeta, ProposalStatus } from "./types";
 
 function blankForm(itemId: number): ProposalForm {
   return {
@@ -69,18 +69,30 @@ export function useProposals() {
   }, []);
 
   const saveMutation = useMutation({
-    mutationFn: async ({ form, editingId }: { form: ProposalForm; editingId: number | null }) => {
+    mutationFn: async ({
+      form,
+      editingId,
+      meta,
+    }: {
+      form: ProposalForm;
+      editingId: number | null;
+      meta?: ProposalSaveMeta;
+    }) => {
       if (editingId !== null) {
-        return updateProposal(editingId, form);
+        return updateProposal(editingId, form, meta);
       }
-      return createProposal(form);
+      return createProposal(form, meta);
     },
-    onSuccess: invalidate,
+    onSuccess: async () => {
+      await invalidate();
+      await queryClient.invalidateQueries({ queryKey: ["empresas"] });
+      await queryClient.invalidateQueries({ queryKey: ["clientes"] });
+    },
   });
 
   const saveProposal = useCallback(
-    async (form: ProposalForm, editingId: number | null): Promise<Proposal> => {
-      return saveMutation.mutateAsync({ form, editingId });
+    async (form: ProposalForm, editingId: number | null, meta?: ProposalSaveMeta): Promise<Proposal> => {
+      return saveMutation.mutateAsync({ form, editingId, meta });
     },
     [saveMutation],
   );

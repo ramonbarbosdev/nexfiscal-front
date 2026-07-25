@@ -1,6 +1,6 @@
 import { apiRequest, type SpringPage } from "@/lib/api-client";
 
-import type { Proposal, ProposalForm, ProposalStatus } from "./types";
+import type { Proposal, ProposalForm, ProposalSaveMeta, ProposalStatus } from "./types";
 
 type ApiProposalItem = {
   id: number;
@@ -64,6 +64,16 @@ function toFormPayload(form: ProposalForm) {
   };
 }
 
+function toWritePayload(form: ProposalForm, meta?: ProposalSaveMeta) {
+  return {
+    ...toFormPayload(form),
+    salvarEmpresa: meta?.salvarEmpresa ?? false,
+    salvarCliente: meta?.salvarCliente ?? false,
+    empresaId: meta?.empresaId ?? null,
+    clienteId: meta?.clienteId ?? null,
+  };
+}
+
 export const proposalKeys = {
   all: ["propostas"] as const,
 };
@@ -73,18 +83,22 @@ export async function fetchProposals(): Promise<Proposal[]> {
   return page.content.map(mapProposal);
 }
 
-export async function createProposal(form: ProposalForm): Promise<Proposal> {
+export async function createProposal(form: ProposalForm, meta?: ProposalSaveMeta): Promise<Proposal> {
   const dto = await apiRequest<ApiProposal>("/propostas", {
     method: "POST",
-    body: toFormPayload(form),
+    body: toWritePayload(form, meta),
   });
   return mapProposal(dto);
 }
 
-export async function updateProposal(id: number, form: ProposalForm): Promise<Proposal> {
+export async function updateProposal(
+  id: number,
+  form: ProposalForm,
+  meta?: ProposalSaveMeta,
+): Promise<Proposal> {
   const dto = await apiRequest<ApiProposal>(`/propostas/${id}`, {
     method: "PUT",
-    body: toFormPayload(form),
+    body: toWritePayload(form, meta),
   });
   return mapProposal(dto);
 }

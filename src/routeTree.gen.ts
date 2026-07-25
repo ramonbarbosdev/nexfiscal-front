@@ -10,12 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ClientesRouteImport } from './routes/clientes'
+import { Route as EmpresasRouteImport } from './routes/empresas'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as NotasFiscaisRouteImport } from './routes/notas-fiscais'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientesRoute = ClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmpresasRoute = EmpresasRouteImport.update({
+  id: '/empresas',
+  path: '/empresas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -31,30 +43,38 @@ const NotasFiscaisRoute = NotasFiscaisRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/clientes': typeof ClientesRoute
+  '/empresas': typeof EmpresasRoute
   '/login': typeof LoginRoute
   '/notas-fiscais': typeof NotasFiscaisRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/clientes': typeof ClientesRoute
+  '/empresas': typeof EmpresasRoute
   '/login': typeof LoginRoute
   '/notas-fiscais': typeof NotasFiscaisRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/clientes': typeof ClientesRoute
+  '/empresas': typeof EmpresasRoute
   '/login': typeof LoginRoute
   '/notas-fiscais': typeof NotasFiscaisRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/notas-fiscais'
+  fullPaths: '/' | '/clientes' | '/empresas' | '/login' | '/notas-fiscais'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/notas-fiscais'
-  id: '__root__' | '/' | '/login' | '/notas-fiscais'
+  to: '/' | '/clientes' | '/empresas' | '/login' | '/notas-fiscais'
+  id: '__root__' | '/' | '/clientes' | '/empresas' | '/login' | '/notas-fiscais'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ClientesRoute: typeof ClientesRoute
+  EmpresasRoute: typeof EmpresasRoute
   LoginRoute: typeof LoginRoute
   NotasFiscaisRoute: typeof NotasFiscaisRoute
 }
@@ -66,6 +86,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clientes': {
+      id: '/clientes'
+      path: '/clientes'
+      fullPath: '/clientes'
+      preLoaderRoute: typeof ClientesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/empresas': {
+      id: '/empresas'
+      path: '/empresas'
+      fullPath: '/empresas'
+      preLoaderRoute: typeof EmpresasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -87,6 +121,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ClientesRoute: ClientesRoute,
+  EmpresasRoute: EmpresasRoute,
   LoginRoute: LoginRoute,
   NotasFiscaisRoute: NotasFiscaisRoute,
 }

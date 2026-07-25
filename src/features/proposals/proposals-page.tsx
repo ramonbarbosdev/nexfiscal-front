@@ -21,7 +21,8 @@ import { PreviewModal } from "./preview-modal";
 import { ProposalDrawer } from "./proposal-drawer";
 import { ProposalsList } from "./proposals-list";
 import { StatsGrid } from "./stats-grid";
-import type { Proposal, ProposalForm } from "./types";
+import type { Proposal, ProposalForm, ProposalSaveMeta } from "./types";
+import { defaultProposalSaveMeta } from "./types";
 import { useProposals } from "./use-proposals";
 
 export function ProposalsPage() {
@@ -55,6 +56,7 @@ export function ProposalsPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<ProposalForm | null>(null);
+  const [saveMeta, setSaveMeta] = useState<ProposalSaveMeta>(defaultProposalSaveMeta);
   const [previewId, setPreviewId] = useState<number | null>(null);
 
   const previewProposal = previewId ? proposals.find((p) => p.id === previewId) ?? null : null;
@@ -63,6 +65,7 @@ export function ProposalsPage() {
   const openDrawer = (existing: Proposal | null) => {
     setEditingId(existing?.id ?? null);
     setForm(existing ? cloneFormFromProposal(existing) : createBlankForm());
+    setSaveMeta(defaultProposalSaveMeta());
     setDrawerOpen(true);
   };
 
@@ -71,10 +74,10 @@ export function ProposalsPage() {
     setPreviewOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (meta: ProposalSaveMeta) => {
     if (!form) return;
     try {
-      const saved = await saveProposal(form, editingId);
+      const saved = await saveProposal(form, editingId, meta);
       setDrawerOpen(false);
       openPreview(saved.id);
       showToast(editingId ? "Proposta atualizada" : "Proposta criada");
@@ -196,8 +199,10 @@ export function ProposalsPage() {
         open={drawerOpen}
         editingProposal={editingProposal}
         form={form}
+        saveMeta={saveMeta}
         onOpenChange={setDrawerOpen}
         onFormChange={setForm}
+        onSaveMetaChange={setSaveMeta}
         onSave={handleSave}
         onAddItem={handleAddItem}
         onRemoveItem={handleRemoveItem}

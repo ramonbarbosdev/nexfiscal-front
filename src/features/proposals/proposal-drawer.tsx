@@ -7,7 +7,9 @@ import { FormField } from "@/components/form/form-field";
 import { FormSection } from "@/components/form/form-section";
 import { FormTabs } from "@/components/form/form-tabs";
 import { MaskedInput, inputClassName } from "@/components/form/masked-input";
+import { SuggestInput } from "@/components/form/suggest-input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   Sheet,
@@ -27,6 +29,8 @@ import {
   type FieldErrors,
 } from "@/lib/zod-helpers";
 import type { ToastVariant } from "@/hooks/use-toast";
+import { useClientes } from "@/features/clientes/use-clientes";
+import { useEmpresas } from "@/features/empresas/use-empresas";
 
 import {
   getProposalWarnings,
@@ -34,15 +38,17 @@ import {
   proposalPathToTab,
 } from "./schema";
 import { calcItemsTotal, formatBRL } from "./utils";
-import type { Proposal, ProposalForm } from "./types";
+import type { Proposal, ProposalForm, ProposalSaveMeta } from "./types";
 
 type ProposalDrawerProps = {
   open: boolean;
   editingProposal: Proposal | null;
   form: ProposalForm | null;
+  saveMeta: ProposalSaveMeta;
   onOpenChange: (open: boolean) => void;
   onFormChange: (form: ProposalForm) => void;
-  onSave: () => void;
+  onSaveMetaChange: (meta: ProposalSaveMeta) => void;
+  onSave: (meta: ProposalSaveMeta) => void;
   onAddItem: () => void;
   onRemoveItem: (id: number) => void;
   onToast: (message: string, variant?: ToastVariant) => void;
@@ -61,13 +67,17 @@ export function ProposalDrawer({
   open,
   editingProposal,
   form,
+  saveMeta,
   onOpenChange,
   onFormChange,
+  onSaveMetaChange,
   onSave,
   onAddItem,
   onRemoveItem,
   onToast,
 }: ProposalDrawerProps) {
+  const { empresas } = useEmpresas();
+  const { clientes } = useClientes();
   const [tab, setTab] = useState<TabId>("empresa");
   const [mdTab, setMdTab] = useState<"edit" | "preview">("edit");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -117,7 +127,41 @@ export function ProposalDrawer({
     if (warningList.length > 0) {
       onToast(formatValidationToast(warningList, "warning"), "warning");
     }
-    onSave();
+    onSave(saveMeta);
+  };
+
+  const selectEmpresa = (value: string) => {
+    if (value === "none") {
+      onSaveMetaChange({ ...saveMeta, empresaId: null });
+      return;
+    }
+    const empresa = empresas.find((e) => e.id === Number(value));
+    if (!empresa) return;
+    onFormChange({
+      ...form!,
+      empresa: {
+        logo: empresa.logo,
+        nome: empresa.nome,
+        whatsapp: empresa.whatsapp,
+        instagram: empresa.instagram,
+        email: empresa.email,
+      },
+    });
+    onSaveMetaChange({ ...saveMeta, empresaId: empresa.id });
+  };
+
+  const selectCliente = (value: string) => {
+    if (value === "none") {
+      onSaveMetaChange({ ...saveMeta, clienteId: null });
+      return;
+    }
+    const cliente = clientes.find((c) => c.id === Number(value));
+    if (!cliente) return;
+    onFormChange({
+      ...form!,
+      cliente: { nome: cliente.nome, telefone: cliente.telefone },
+    });
+    onSaveMetaChange({ ...saveMeta, clienteId: cliente.id });
   };
 
   if (!form) return null;
@@ -177,6 +221,26 @@ export function ProposalDrawer({
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           {tab === "empresa" && (
             <FormSection title="Dados da empresa" description="Informações do prestador na proposta.">
+              {empresas.length > 0 ? (
+                <FormField label="Empresa cadastrada">
+                  <Select
+                    value={saveMeta.empresaId ? String(saveMeta.empresaId) : "none"}
+                    onValueChange={selectEmpresa}
+                  >
+                    <SelectTrigger className="h-10 border-border bg-background">
+                      <SelectValue placeholder="Selecionar empresa" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Digitar manualmente</SelectItem>
+                      {empresas.map((empresa) => (
+                        <SelectItem key={empresa.id} value={String(empresa.id)}>
+                          {empresa.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormField>
+              ) : null}
               <div className="flex items-start gap-4">
                 <FormField label="Logo">
                   <label
@@ -229,11 +293,43 @@ export function ProposalDrawer({
                   />
                 </FormField>
               </div>
+              <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
+                <Checkbox
+                  checked={saveMeta.salvarEmpresa}
+                  onCheckedChange={(checked) =>
+                    onSaveMetaChange({ ...saveMeta, salvarEmpresa: checked === true })
+                  }
+                />
+                <span className="text-sm">
+                  Salvar empresa no cadastro
+                  {saveMeta.empresaId ? " (atualizar existente)" : " (criar nova)"}
+                </span>
+              </label>
             </FormSection>
           )}
 
           {tab === "cliente" && (
             <FormSection title="Dados do cliente">
+              {clientes.length > 0 ? (
+                <FormField label="Cliente cadastrado">
+                  <Select
+                    value={saveMeta.clienteId ? String(saveMeta.clienteId) : "none"}
+                    onValueChange={selectCliente}
+                  >
+                    <SelectTrigger className="h-10 border-border bg-background">
+                      <SelectValue placeholder="Selecionar cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Digitar manualmente</SelectItem>
+                      {clientes.map((cliente) => (
+                        <SelectItem key={cliente.id} value={String(cliente.id)}>
+                          {cliente.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormField>
+              ) : null}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField label="Nome" required className="sm:col-span-2" error={getFieldError(fieldErrors, "cliente.nome")}>
                   <Input
@@ -250,6 +346,18 @@ export function ProposalDrawer({
                   />
                 </FormField>
               </div>
+              <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
+                <Checkbox
+                  checked={saveMeta.salvarCliente}
+                  onCheckedChange={(checked) =>
+                    onSaveMetaChange({ ...saveMeta, salvarCliente: checked === true })
+                  }
+                />
+                <span className="text-sm">
+                  Salvar cliente no cadastro
+                  {saveMeta.clienteId ? " (atualizar existente)" : " (criar novo)"}
+                </span>
+              </label>
             </FormSection>
           )}
 

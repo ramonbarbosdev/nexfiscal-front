@@ -40,6 +40,20 @@ export type Proposal = ProposalForm & {
   createdAt: Date;
 };
 
+export type ProposalSaveMeta = {
+  salvarEmpresa: boolean;
+  salvarCliente: boolean;
+  empresaId: number | null;
+  clienteId: number | null;
+};
+
+export const defaultProposalSaveMeta = (): ProposalSaveMeta => ({
+  salvarEmpresa: false,
+  salvarCliente: false,
+  empresaId: null,
+  clienteId: null,
+});
+
 export type Counters = {
   idCounter: number;
   seq: number;
