@@ -36,7 +36,7 @@ jobs:
           echo "image_tag=prod-${{ github.sha }}" >> "$GITHUB_OUTPUT"
           echo "latest_tag=prod-latest" >> "$GITHUB_OUTPUT"
           echo "container_name=nexfiscal-front-prod" >> "$GITHUB_OUTPUT"
-          echo "host_port=3010" >> "$GITHUB_OUTPUT"
+          echo "host_port=5174" >> "$GITHUB_OUTPUT"
 
   build-and-push:
     needs: prepare

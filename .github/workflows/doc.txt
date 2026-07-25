@@ -8,7 +8,7 @@ Fluxo:
 
 Container:
     nexfiscal-front-prod
-    Porta host: 3010 (container escuta na 80)
+    Porta host: 5174 (container escuta na 80)
     Rede Docker: network-nexfiscal
 
 GitHub — environment "prod":
