@@ -96,6 +96,26 @@ export function ProposalDrawer({
     [fieldErrors],
   );
 
+  const empresaOptions = useMemo(
+    () =>
+      empresas.map((empresa) => ({
+        id: empresa.id,
+        label: empresa.nome,
+        subtitle: [empresa.whatsapp, empresa.email].filter(Boolean).join(" · ") || undefined,
+      })),
+    [empresas],
+  );
+
+  const clienteOptions = useMemo(
+    () =>
+      clientes.map((cliente) => ({
+        id: cliente.id,
+        label: cliente.nome,
+        subtitle: cliente.telefone || undefined,
+      })),
+    [clientes],
+  );
+
   const clearFieldError = (path: string) => {
     setFieldErrors((prev) => {
       if (!prev[path]) return prev;
