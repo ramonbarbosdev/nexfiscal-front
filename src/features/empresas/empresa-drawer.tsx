@@ -170,10 +170,10 @@ export function EmpresaDrawer({
             </Button>
           ) : null}
           <div className="flex w-full gap-2">
-            <Button variant="outline" className="h-11 flex-1 rounded-lg" onClick={requestClose}>
+            <Button type="button" variant="outline" className="h-11 flex-1 rounded-lg" onClick={requestClose}>
               Cancelar
             </Button>
-            <Button className="h-11 flex-1 rounded-lg" onClick={handleSave} disabled={isSaving || isDeleting}>
+            <Button type="button" className="h-11 flex-1 rounded-lg" onClick={handleSave} disabled={isSaving || isDeleting}>
               Salvar
             </Button>
           </div>

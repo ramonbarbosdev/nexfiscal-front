@@ -33,6 +33,8 @@ import {
 import type { ToastVariant } from "@/hooks/use-toast";
 import { useClientes } from "@/features/clientes/use-clientes";
 import { useEmpresas } from "@/features/empresas/use-empresas";
+import { itemTipoLabel } from "@/features/itens/types";
+import { useItens } from "@/features/itens/use-itens";
 
 import {
   getProposalWarnings,
@@ -86,6 +88,7 @@ export function ProposalDrawer({
 }: ProposalDrawerProps) {
   const { empresas } = useEmpresas();
   const { clientes } = useClientes();
+  const { itens: catalogItens } = useItens();
   const [tab, setTab] = useState<TabId>("empresa");
   const [mdTab, setMdTab] = useState<"edit" | "preview">("edit");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -104,6 +107,18 @@ export function ProposalDrawer({
   const invalidTabs = useMemo(
     () => tabsWithErrors(fieldErrors, proposalPathToTab),
     [fieldErrors],
+  );
+
+  const itemOptions = useMemo(
+    () =>
+      catalogItens
+        .filter((item) => item.ativo)
+        .map((item) => ({
+          id: item.id,
+          label: item.nome,
+          subtitle: [itemTipoLabel(item.tipo), formatBRL(item.precoPadrao)].join(" · "),
+        })),
+    [catalogItens],
   );
 
   const empresaOptions = useMemo(
@@ -230,6 +245,23 @@ export function ProposalDrawer({
               [field]: field === "desc" ? value : Number(value) || 0,
             }
           : item,
+      ),
+    });
+  };
+
+  const applyCatalogItem = (catalogItemId: number, lineId: number) => {
+    const catalogItem = catalogItens.find((item) => item.id === catalogItemId);
+    if (!catalogItem) return;
+    const index = form.itens.findIndex((item) => item.id === lineId);
+    if (index >= 0) {
+      clearFieldError(`itens.${index}.desc`);
+      clearFieldError(`itens.${index}.valor`);
+    }
+    const desc = catalogItem.descricao.trim() || catalogItem.nome;
+    onFormChange({
+      ...form,
+      itens: form.itens.map((item) =>
+        item.id === lineId ? { ...item, desc, valor: catalogItem.precoPadrao } : item,
       ),
     });
   };
@@ -469,16 +501,22 @@ export function ProposalDrawer({
                         className="sm:hidden"
                         error={getFieldError(fieldErrors, `itens.${index}.desc`)}
                       >
-                        <Input
+                        <SuggestInput
                           value={item.desc}
-                          onChange={(e) => updateItem(item.id, "desc", e.target.value)}
+                          onChange={(value) => updateItem(item.id, "desc", value)}
+                          onSelect={(option) => applyCatalogItem(Number(option.id), item.id)}
+                          options={itemOptions}
                           className={inputClassName}
+                          placeholder="Buscar no catálogo ou digitar"
                         />
                       </FormField>
-                      <Input
+                      <SuggestInput
                         value={item.desc}
-                        onChange={(e) => updateItem(item.id, "desc", e.target.value)}
+                        onChange={(value) => updateItem(item.id, "desc", value)}
+                        onSelect={(option) => applyCatalogItem(Number(option.id), item.id)}
+                        options={itemOptions}
                         className={`hidden sm:block ${inputClassName}`}
+                        placeholder="Buscar no catálogo ou digitar"
                       />
                       <FormField
                         label="Qtd"
@@ -604,10 +642,10 @@ export function ProposalDrawer({
             </Button>
           ) : null}
           <div className="flex w-full gap-2">
-            <Button variant="outline" className="h-11 flex-1 rounded-lg" onClick={requestClose}>
+            <Button type="button" variant="outline" className="h-11 flex-1 rounded-lg" onClick={requestClose}>
               Cancelar
             </Button>
-            <Button className="h-11 flex-1 rounded-lg" onClick={handleSaveClick} disabled={isDeleting}>
+            <Button type="button" className="h-11 flex-1 rounded-lg" onClick={handleSaveClick} disabled={isDeleting}>
               Salvar proposta
             </Button>
           </div>

@@ -30,6 +30,7 @@ export function ConfirmClose({
     handleOpenChange,
     confirmDiscard,
   } = useConfirmClose({
+    open,
     isDirty,
     onClose: () => onOpenChange(false),
   });

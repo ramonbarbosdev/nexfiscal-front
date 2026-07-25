@@ -1,27 +1,35 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 type UseConfirmCloseOptions = {
+  open: boolean;
   isDirty: boolean;
   onClose: () => void;
 };
 
-export function useConfirmClose({ isDirty, onClose }: UseConfirmCloseOptions) {
+export function useConfirmClose({ open, isDirty, onClose }: UseConfirmCloseOptions) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const isDirtyRef = useRef(isDirty);
+  isDirtyRef.current = isDirty;
 
   const requestClose = useCallback(() => {
-    if (isDirty) {
+    if (isDirtyRef.current) {
       setConfirmOpen(true);
       return;
     }
     onClose();
-  }, [isDirty, onClose]);
+  }, [onClose]);
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
       if (next) return;
+      // Fechamento já decidido pelo pai (ex.: após salvar) — não pedir confirmação de novo.
+      if (!open) {
+        onClose();
+        return;
+      }
       requestClose();
     },
-    [requestClose],
+    [open, onClose, requestClose],
   );
 
   const confirmDiscard = useCallback(() => {

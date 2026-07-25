@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: "/", label: "Propostas", short: "Prop." },
   { to: "/empresas", label: "Empresas", short: "Emp." },
   { to: "/clientes", label: "Clientes", short: "Cli." },
+  { to: "/itens", label: "Itens", short: "Itens" },
   { to: "/notas-fiscais", label: "Notas fiscais", short: "NFS-e" },
 ] as const;
 

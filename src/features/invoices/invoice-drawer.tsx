@@ -469,11 +469,12 @@ export function InvoiceDrawer({
             </Button>
           ) : null}
           <div className="flex w-full gap-2">
-            <Button variant="outline" className="h-11 flex-1 rounded-lg" onClick={requestClose}>
+            <Button type="button" variant="outline" className="h-11 flex-1 rounded-lg" onClick={requestClose}>
               Cancelar
             </Button>
             {!isEmitted && (
               <Button
+                type="button"
                 variant="secondary"
                 className="h-11 flex-1 rounded-lg"
                 onClick={handleSaveDraftClick}
@@ -483,6 +484,7 @@ export function InvoiceDrawer({
               </Button>
             )}
             <Button
+              type="button"
               className="h-11 flex-1 rounded-lg"
               onClick={handleEmitClick}
               disabled={isEmitted || isDeleting}

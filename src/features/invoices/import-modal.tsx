@@ -177,10 +177,10 @@ export function ImportInvoicesModal({
             </div>
 
             <DialogFooter className="border-t px-5 py-4">
-              <Button variant="outline" onClick={requestClose}>
+              <Button type="button" variant="outline" onClick={requestClose}>
                 Cancelar
               </Button>
-              <Button onClick={handleImport} disabled={preview.length === 0}>
+              <Button type="button" onClick={handleImport} disabled={preview.length === 0}>
                 Importar {preview.length > 0 ? `(${preview.length})` : ""}
               </Button>
             </DialogFooter>
