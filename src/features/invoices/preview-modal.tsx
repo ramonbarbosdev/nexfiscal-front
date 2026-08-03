@@ -43,12 +43,13 @@ export function PreviewModal({
   const { valorLiquido } = calcInvoiceTotals(invoice.servico);
 
   const downloadPng = async () => {
-    const node = docRef.current;
-    if (!node) return;
+    const card = docRef.current?.firstElementChild;
+    if (!(card instanceof HTMLElement)) return;
     onToast("Gerando imagem...");
     try {
-      await downloadElementAsPng(node, `nfse-${invoice.numero}.png`);
-    } catch {
+      await downloadElementAsPng(card, `nfse-${invoice.numero}.png`);
+    } catch (error) {
+      console.error("Falha ao exportar PNG da NFS-e", error);
       onToast("Não foi possível gerar a imagem");
     }
   };

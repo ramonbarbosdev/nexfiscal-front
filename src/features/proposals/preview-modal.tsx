@@ -89,15 +89,16 @@ export function PreviewModal({
   };
 
   const downloadPng = async () => {
-    const node = receiptRef.current;
-    if (!node) return;
+    const card = receiptRef.current?.firstElementChild;
+    if (!(card instanceof HTMLElement)) return;
     onToast("Gerando imagem...");
     try {
       await downloadElementAsPng(
-        node,
+        card,
         isReport ? `relatorio-${proposal.numero}.png` : `proposta-${proposal.numero}.png`,
       );
-    } catch {
+    } catch (error) {
+      console.error("Falha ao exportar PNG da proposta", error);
       onToast("Não foi possível gerar a imagem");
     }
   };
