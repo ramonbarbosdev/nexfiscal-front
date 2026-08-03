@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import html2canvas from "html2canvas";
 import {
   CheckCircle2,
   Copy,
@@ -16,6 +15,7 @@ import {
 import { DeleteConfirmDialog } from "@/components/form/delete-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { downloadElementAsPng } from "@/lib/html2canvas-export";
 import { cn } from "@/lib/utils";
 
 import { ReceiptCard } from "./receipt-card";
@@ -92,11 +92,14 @@ export function PreviewModal({
     const node = receiptRef.current;
     if (!node) return;
     onToast("Gerando imagem...");
-    const canvas = await html2canvas(node, { backgroundColor: null, scale: 2 });
-    const link = document.createElement("a");
-    link.download = isReport ? `relatorio-${proposal.numero}.png` : `proposta-${proposal.numero}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
+    try {
+      await downloadElementAsPng(
+        node,
+        isReport ? `relatorio-${proposal.numero}.png` : `proposta-${proposal.numero}.png`,
+      );
+    } catch {
+      onToast("Não foi possível gerar a imagem");
+    }
   };
 
   const copyLink = () => {

@@ -1,10 +1,10 @@
 import { useRef, useState } from "react";
-import html2canvas from "html2canvas";
 import { Ban, Copy, FileDown, Image, Link, Pencil, Trash2 } from "lucide-react";
 
 import { DeleteConfirmDialog } from "@/components/form/delete-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { downloadElementAsPng } from "@/lib/html2canvas-export";
 
 import { InvoiceDocument } from "./invoice-document";
 import type { Invoice } from "./types";
@@ -46,11 +46,11 @@ export function PreviewModal({
     const node = docRef.current;
     if (!node) return;
     onToast("Gerando imagem...");
-    const canvas = await html2canvas(node, { backgroundColor: null, scale: 2 });
-    const link = document.createElement("a");
-    link.download = `nfse-${invoice.numero}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
+    try {
+      await downloadElementAsPng(node, `nfse-${invoice.numero}.png`);
+    } catch {
+      onToast("Não foi possível gerar a imagem");
+    }
   };
 
   const copyLink = () => {
